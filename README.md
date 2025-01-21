@@ -14,7 +14,7 @@ These combined hard shell and accessory fastas for each PTU are available [here]
 We then used [RMES](https://forgemia.inra.fr/sophie.schbath/rmes) to analyse occurrences of short motifs (k=4,5,6). The wrapper scripts to do this are available in `scripts/cluster` (for running on Oxford BMRC slurm cluster).
 The results from this analysis are available [here](zenodo/rmes_results)
 
-We used [rmsFinder](https://github.com/liampshaw/rmsFinder) to identify Type II RM systems in the 37 genera the plasmids were from. We downloaded up to 100 genomes per genus from RefSeq complete genomes. 
-
+We used [rmsFinder](https://github.com/liampshaw/rmsFinder) to identify Type II RM systems in the 37 genera the plasmids were from. We downloaded up to 100 genomes per genus from RefSeq complete genomes (scripts on BMRC cluster, `projects/R-M-trieste`).
+The resulting database of target prevalences across the 37 genera is available at `data/RM_target_db.csv`
 
  
