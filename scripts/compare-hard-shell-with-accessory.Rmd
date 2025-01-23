@@ -1,0 +1,28 @@
+# Compare hard shell genes vs. accessory
+
+```{r}
+library(ggplot2)
+```
+
+
+```{r}
+# Pangenome statistics for PTUs
+ptu = read.csv('../data/PTU-pangenome-stats.csv')
+
+# Read in RMES comparisons
+df_4 = read.csv('~/Downloads/trieste/test_k4.csv')
+df_6 = read.csv('~/Downloads/trieste/test_k6.csv')
+df_4_filter = df_4[df_4$PTU %in% ptu$PTU[ptu$pangenome.category=="include"],]
+df_6_filter = df_6[df_6$PTU %in% ptu$PTU[ptu$pangenome.category=="include"],]
+```
+
+Do the statistical test
+
+```{r}
+wilcox.test(df_6_filter$discrepancy_selected, df_6_filter$discrepancy_others, paired = TRUE)
+
+```
+```{r}
+ggplot(df_4_filter, aes(x="k=4", wilcoxon_stat, colour=p_value<0.05))+
+  geom_point()
+```
