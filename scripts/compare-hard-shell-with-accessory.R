@@ -9,6 +9,7 @@ ptu.stats = read.csv('../data/PTU-pangenome-stats.csv',
                      header=T)
 SUBSET_PTUS = ptu.stats$PTU[ptu.stats$pangenome.category=="include"]
   
+rm_target_db = read.csv('../data/RM_target_db.csv')
 
 compareHardShellVsAccessory = function(PTU_name, k){
   ptu_df_hard_shell = read.csv(paste0(FASTA_DIR, 
@@ -62,10 +63,13 @@ for (PTU_name in SUBSET_PTUS[1:length(SUBSET_PTUS)]){
          width=6, height=4)
 }
 
-hard_shell_list <- list.files(path = "~/Dropbox/_Projects/2023-Trieste/2023-Trieste-RM/output/", pattern = "core_genes_k6\\.csv$", full.names = TRUE)
-accessory_list <- list.files(path = "~/Dropbox/_Projects/2023-Trieste/2023-Trieste-RM/output/", pattern = "accessory_genes_k6\\.csv$", full.names = TRUE)
 
-ptu_info = read.csv('../data/top50ptus_info.csv', header=T, row.names = 1)
+# Go through the PTU results (here, for k=6) and calculate discrepancies
+# Ideally I want a general way of doing this for a given set of k-mers, 
+# what is the discrepancy within? It might be better to do this in Python...
+hard_shell_list <- list.files(path = FASTA_DIR, pattern = "core_genes_k6\\.csv$", full.names = TRUE)
+accessory_list <- list.files(path = FASTA_DIR, pattern = "accessory_genes_k6\\.csv$", full.names = TRUE)
+
 
 median_discrepancies = c()
 wilcox_test_results = c()
@@ -86,9 +90,11 @@ for (i in 1:length(hard_shell_list)){
   wilcox_test_results = c(wilcox_test_results, wilcox_test_result)
 }
 
-results_df = data.frame(discrepancy=median_discrepancies, 
+results_df_k6 = data.frame(discrepancy=median_discrepancies, 
                         wilcox.test.result = wilcox_test_results,
                         PTU=gsub("_core.*", "", gsub(".*output\\/\\/", "", hard_shell_list)))
+
+
 results_df$host.range = ptu_info[results_df$PTU,"host.range"]
 
 results_df$PTU = ordered(results_df$PTU,
