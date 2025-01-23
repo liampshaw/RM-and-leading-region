@@ -55,6 +55,7 @@ for i, sequence in enumerate(target_db['sequence']):
 
 new_target_db_df = pd.DataFrame(new_target_db)
 new_target_db_df.columns = ['genus', 'sequence', 'genome', 'total_genomes', 'normalized_count', 'deambiguated_sequence']
+new_target_db_df = new_target_db_df.assign(length=[len(x) for x in new_target_db_df['deambiguated_sequence']])
 new_target_db_df.to_csv("data/RM_target_db_deambiguated.csv", index=False)
 
 
