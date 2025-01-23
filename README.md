@@ -15,7 +15,10 @@ We then used [RMES](https://forgemia.inra.fr/sophie.schbath/rmes) to analyse occ
 The results from this analysis are available [here](zenodo/rmes_results)
 
 We used [rmsFinder](https://github.com/liampshaw/rmsFinder) to identify Type II RM systems in the 37 genera the plasmids were from. We downloaded up to 100 genomes per genus from RefSeq complete genomes (scripts on BMRC cluster, `projects/R-M-trieste`).
-The resulting database of target prevalences across the 37 genera is available at `data/RM_target_db.csv`
+The resulting database of target prevalences across the 37 genera is available at `data/RM_target_db.csv`. This database contains ambiguity codes; it was de-ambiguated with `python scripts/deambiguate-target-db.py` to produce `data/RM_target_db_deambiguated.csv`.
 
 We computed discrepancies in RMES score between hard shell (aka core) vs. accessory with `scripts/rmes-score-discrepancy.py` with a wrapper script `scripts/run-rmes-score-discrepancy.py` that simply runs this on all RMES results files from the different PTUs. 
- 
+
+# Python dependencies
+
+The python scripts depend on `scipy, pandas`. 

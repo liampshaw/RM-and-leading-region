@@ -19,6 +19,7 @@ df_6_filter = df_6[df_6$PTU %in% ptu$PTU[ptu$pangenome.category=="include"],]
 Do the statistical test
 
 ```{r}
+wilcox.test(df_4_filter$discrepancy_selected, df_4_filter$discrepancy_others, paired = TRUE)
 wilcox.test(df_6_filter$discrepancy_selected, df_6_filter$discrepancy_others, paired = TRUE)
 
 ```
