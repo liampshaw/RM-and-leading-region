@@ -1,0 +1,51 @@
+import subprocess
+import os
+import glob
+
+def run_comparisons(base_script, directory, kmers_file, output_file, k):
+    # Find all core and accessory files in the given directory
+    core_files = sorted(glob.glob(os.path.join(directory, "PTU-*_core_genes_k"+str(k)+".csv")))
+    accessory_files = sorted(glob.glob(os.path.join(directory, "PTU-*_accessory_genes_k"+str(k)+".csv")))
+
+    # Ensure matching pairs
+    if len(core_files) != len(accessory_files):
+        print("Error: Mismatched number of core and accessory files.")
+        return
+
+    with open(output_file, "w") as out:
+        out.write("PTU,discrepancy_selected,discrepancy_others,wilcoxon_stat,p_value\n")
+        for core_file, accessory_file in zip(core_files, accessory_files):
+                # Construct the command
+                command = [
+                    "python", base_script,
+                    "--core", core_file,
+                    "--accessory", accessory_file,
+                    "--kmers", kmers_file
+                ]
+
+                # Execute the command
+                result = subprocess.run(command, capture_output=True, text=True)
+
+                # Output the results
+                if result.returncode == 0:
+                    out.write(result.stdout)
+                else:
+                    print(f"Error for core: {core_file} and accessory: {accessory_file}")
+                    print(result.stderr)
+
+if __name__ == "__main__":
+    import argparse
+
+    # Argument parsing
+    parser = argparse.ArgumentParser(description="Run comparisons for multiple core and accessory files.")
+    parser.add_argument("--script", required=True, help="Path to the comparison script.")
+    parser.add_argument("--directory", required=True, help="Directory containing core and accessory files.")
+    parser.add_argument("--kmers", required=True, help="Path to the kmers text file (make sure it matches value of k).")
+    parser.add_argument("--output", required=True, help="Path to the output file.")
+    parser.add_argument("--k", required=True, help="Value of k (4,5,6).")
+
+
+    args = parser.parse_args()
+
+    # Run comparisons
+    run_comparisons(args.script, args.directory, args.kmers, args.output, args.k)
