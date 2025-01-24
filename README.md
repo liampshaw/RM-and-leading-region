@@ -24,7 +24,7 @@ awk -F ',' '$7=="4"' data/RM_target_db_deambiguated.csv | cut -d ',' -f 6 | sort
 We computed discrepancies in RMES score between hard shell (aka core) vs. accessory with `scripts/rmes-score-discrepancy.py` with a wrapper script `scripts/run-rmes-score-discrepancy.py` that simply runs this on all RMES results files from the different PTUs. 
 
 We created a database of targets by PTU (i.e. for a given PTU, the set of all motifs targeted by RM systems detected within genomes of its hosts) using `python scripts/create-PTU-target-DB.py`. The results are in `data/targets-by-PTU`. 
-These can then be used to generate discrepancy scores for targets using e.g.
+These can then be used to generate discrepancy scores for within-range targets using e.g.
 ```
 python ~/Dropbox/_Projects/2023-Trieste/RM-and-leading-region/scripts/run-rmes-score-discrepancy.py --script ~/Dropbox/_Projects/2023-Trieste/RM-and-leading-region/scripts/rmes-score-discrepancy.py --dir ./ --kmers per-PTU --output test_RM_targets.csv --k 6
 ```
