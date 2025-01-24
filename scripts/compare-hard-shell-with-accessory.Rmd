@@ -2,6 +2,8 @@
 
 ```{r}
 library(ggplot2)
+library(knitr)
+library(xtable)
 ```
 
 
@@ -26,4 +28,70 @@ wilcox.test(df_6_filter$discrepancy_selected, df_6_filter$discrepancy_others, pa
 ```{r}
 ggplot(df_4_filter, aes(x="k=4", wilcoxon_stat, colour=p_value<0.05))+
   geom_point()
+```
+
+
+```{r }
+df_4 = read.csv('~/Downloads/trieste/test_4mer_targets.csv')
+df_4_filter = df_4[df_4$PTU %in% ptu$PTU[ptu$pangenome.category=="include"],]
+df_5 = read.csv('~/Downloads/trieste/test_5mer_targets.csv')
+df_5_filter = df_5[df_5$PTU %in% ptu$PTU[ptu$pangenome.category=="include"],]
+df_6 = read.csv('~/Downloads/trieste/test_6mer_targets.csv')
+df_6_filter = df_6[df_6$PTU %in% ptu$PTU[ptu$pangenome.category=="include"],]
+
+wilcox_tests = list(wilcox.test(df_4_filter$discrepancy_selected, df_4_filter$discrepancy_others, paired = TRUE),
+                    wilcox.test(df_5_filter$discrepancy_selected, df_5_filter$discrepancy_others, paired = TRUE),
+                    wilcox.test(df_6_filter$discrepancy_selected, df_6_filter$discrepancy_others, paired = TRUE))
+results_df = data.frame(median_discrepancy_targets=c(median(df_4_filter$discrepancy_selected),
+                                        median(df_5_filter$discrepancy_selected),
+                                        median(df_6_filter$discrepancy_selected)),
+           median_discrepancy_others=c(median(df_4_filter$discrepancy_others),
+                                        median(df_5_filter$discrepancy_others),
+                                        median(df_6_filter$discrepancy_others)),
+           wilcoxon_stat=c(wilcox_tests[[1]]$statistic,
+                           wilcox_tests[[2]]$statistic,
+                           wilcox_tests[[3]]$statistic),
+           p_value=c(wilcox_tests[[1]]$p.value,
+                     wilcox_tests[[2]]$p.value,
+                     wilcox_tests[[3]]$p.value))
+kable(results_df, digits = 3, format = "html")
+
+```
+
+```{r}
+# Read in results for RM targets
+df_4 = read.csv('~/Downloads/trieste/test_RM_targets_k4.csv')
+df_4_filter = df_4[df_4$PTU %in% ptu$PTU[ptu$pangenome.category=="include" & df_4$discrepancy_selected!="None"],]
+df_5 = read.csv('~/Downloads/trieste/test_RM_targets_k5.csv')
+df_5_filter = df_5[df_5$PTU %in% ptu$PTU[ptu$pangenome.category=="include" & df_5$discrepancy_selected!="None"],]
+df_6 = read.csv('~/Downloads/trieste/test_RM_targets_k6.csv')
+df_6_filter = df_6[df_6$PTU %in% ptu$PTU[ptu$pangenome.category=="include" & df_6$discrepancy_selected!="None"],]
+
+# Convert discrepancies to numeric (presence of None has messed this up)
+df_4_filter$discrepancy_selected = as.numeric(df_4_filter$discrepancy_selected)
+df_5_filter$discrepancy_selected = as.numeric(df_5_filter$discrepancy_selected)
+df_6_filter$discrepancy_selected = as.numeric(df_6_filter$discrepancy_selected)
+
+wilcox_tests = list(wilcox.test(df_4_filter$discrepancy_selected, df_4_filter$discrepancy_others, paired = TRUE),
+                    wilcox.test(df_5_filter$discrepancy_selected, df_5_filter$discrepancy_others, paired = TRUE),
+                    wilcox.test(df_6_filter$discrepancy_selected, df_6_filter$discrepancy_others, paired = TRUE))
+results_df = data.frame(n_PTUs = c(nrow(df_4_filter),
+                                   nrow(df_5_filter),
+                                   nrow(df_6_filter)),
+                        median_n_targets = c(median(df_4_filter$n_selected_kmers),
+                                   median(df_5_filter$n_selected_kmers),
+                                   median(df_6_filter$n_selected_kmers)),
+  median_discrepancy_targets=c(median(df_4_filter$discrepancy_selected),
+                                        median(df_5_filter$discrepancy_selected),
+                                        median(df_6_filter$discrepancy_selected)),
+           median_discrepancy_others=c(median(df_4_filter$discrepancy_others),
+                                        median(df_5_filter$discrepancy_others),
+                                        median(df_6_filter$discrepancy_others)),
+           wilcoxon_stat=c(wilcox_tests[[1]]$statistic,
+                           wilcox_tests[[2]]$statistic,
+                           wilcox_tests[[3]]$statistic),
+           p_value=c(wilcox_tests[[1]]$p.value,
+                     wilcox_tests[[2]]$p.value,
+                     wilcox_tests[[3]]$p.value))
+kable(results_df, digits = 3, format = "html")
 ```
