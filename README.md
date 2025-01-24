@@ -16,8 +16,19 @@ The results from this analysis are available [here](zenodo/rmes_results)
 
 We used [rmsFinder](https://github.com/liampshaw/rmsFinder) to identify Type II RM systems in the 37 genera the plasmids were from. We downloaded up to 100 genomes per genus from RefSeq complete genomes (scripts on BMRC cluster, `projects/R-M-trieste`).
 The resulting database of target prevalences across the 37 genera is available at `data/RM_target_db.csv`. This database contains ambiguity codes; it was de-ambiguated with `python scripts/deambiguate-target-db.py` to produce `data/RM_target_db_deambiguated.csv`.
+The k-mers of a given length that are targeted by any RM system in the dataset can then be extracted with e.g.
+```
+awk -F ',' '$7=="4"' data/RM_target_db_deambiguated.csv | cut -d ',' -f 6 | sort -n  | uniq > 4mer_targets.txt
+```
 
 We computed discrepancies in RMES score between hard shell (aka core) vs. accessory with `scripts/rmes-score-discrepancy.py` with a wrapper script `scripts/run-rmes-score-discrepancy.py` that simply runs this on all RMES results files from the different PTUs. 
+
+We created a database of targets by PTU (i.e. for a given PTU, the set of all motifs targeted by RM systems detected within genomes of its hosts) using `python scripts/create-PTU-target-DB.py`. The results are in `data/targets-by-PTU`. 
+These can then be used to generate discrepancy scores for targets using e.g.
+```
+python ~/Dropbox/_Projects/2023-Trieste/RM-and-leading-region/scripts/run-rmes-score-discrepancy.py --script ~/Dropbox/_Projects/2023-Trieste/RM-and-leading-region/scripts/rmes-score-discrepancy.py --dir ./ --kmers per-PTU --output test_RM_targets.csv --k 6
+```
+
 
 # Python dependencies
 
