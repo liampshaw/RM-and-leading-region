@@ -26,7 +26,7 @@ We computed discrepancies in RMES score between hard shell (aka core) vs. access
 We created a database of targets by PTU (i.e. for a given PTU, the set of all motifs targeted by RM systems detected within genomes of its hosts) using `python scripts/create-PTU-target-DB.py`. The results are in `data/targets-by-PTU`. 
 These can then be used to generate discrepancy scores for within-range targets using e.g.
 ```
-python ~/Dropbox/_Projects/2023-Trieste/RM-and-leading-region/scripts/run-rmes-score-discrepancy.py --script ~/Dropbox/_Projects/2023-Trieste/RM-and-leading-region/scripts/rmes-score-discrepancy.py --dir ./ --kmers per-PTU --output test_RM_targets.csv --k 6
+python scripts/run-rmes-score-discrepancy.py --script scripts/rmes-score-discrepancy.py --dir ~/Downloads/trieste/ --kmers per-PTU --output results/rmes_discrepancies_targets_k6.csv  --k 6
 ```
 
 

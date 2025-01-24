@@ -60,11 +60,11 @@ kable(results_df, digits = 3, format = "html")
 
 ```{r}
 # Read in results for RM targets
-df_4 = read.csv('~/Downloads/trieste/test_RM_targets_k4.csv')
+df_4 = read.csv('../results/rmes_discrepancies_targets_k4.csv')
 df_4_filter = df_4[df_4$PTU %in% ptu$PTU[ptu$pangenome.category=="include" & df_4$discrepancy_selected!="None"],]
-df_5 = read.csv('~/Downloads/trieste/test_RM_targets_k5.csv')
+df_5 = read.csv('../results/rmes_discrepancies_targets_k5.csv')
 df_5_filter = df_5[df_5$PTU %in% ptu$PTU[ptu$pangenome.category=="include" & df_5$discrepancy_selected!="None"],]
-df_6 = read.csv('~/Downloads/trieste/test_RM_targets_k6.csv')
+df_6 = read.csv('../results/rmes_discrepancies_targets_k6.csv')
 df_6_filter = df_6[df_6$PTU %in% ptu$PTU[ptu$pangenome.category=="include" & df_6$discrepancy_selected!="None"],]
 
 # Convert discrepancies to numeric (presence of None has messed this up)
