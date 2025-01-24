@@ -49,6 +49,7 @@ def calculate_discrepancy_and_test(core_file, accessory_file, kmers_file):
         wilcox_stat, p_value = None, None
 
     return {
+        'n_special_kmers' : len(kmers_data),
         'median_discrepancy_kmers': median_discrepancy_kmers,
         'median_discrepancy_others': median_discrepancy_others,
         'wilcoxon_statistic': wilcox_stat,
@@ -61,5 +62,5 @@ if __name__ == "__main__":
     results = calculate_discrepancy_and_test(args.core, args.accessory, args.kmers)
     filename_base = args.core.split('_')[0].rsplit("/", 1)[-1]
 
-    results = [filename_base,results['median_discrepancy_kmers'], results['median_discrepancy_others'], results['wilcoxon_statistic'],results['p_value']]
+    results = [filename_base,results['n_special_kmers'], results['median_discrepancy_kmers'], results['median_discrepancy_others'], results['wilcoxon_statistic'],results['p_value']]
     print(','.join([str(x) for x in results]))
