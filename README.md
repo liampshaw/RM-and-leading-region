@@ -32,7 +32,7 @@ python scripts/run-rmes-score-discrepancy.py --script scripts/rmes-score-discrep
 We identified leading regions of plasmids as outlined in the paper. Information on the leading region of PTUs is available at `data/leading_region_081123.tsv`. We then analyse this with `scripts/orient_leading_region.py`: 
 
 ```
-python scripts/orient_leading_region.py --output test_output.csv --fasta_file_search "/Users/Liam/Downloads/06_plaspan/*/_fasta/*" --leading_region_file data/leading_region_081123.tsv --leading_region_size 5000 --sliding_window 5000 --step_size 500 --k 6  
+python scripts/orient_leading_region.py --output test_output_window5000_step500.csv --fasta_file_search "/Users/Liam/Downloads/06_plaspan/*/_fasta/*" --leading_region_file data/leading_region_081123.tsv --leading_region_size 5000 --sliding_window 5000 --step_size 500 --k 6
 ```
  
 ## Paper analysis
