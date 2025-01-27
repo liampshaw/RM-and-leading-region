@@ -1,4 +1,4 @@
-# Orient plasmid by leading region
+# Orient plasmid by leading region and use sliding window for palindrome density
 
 # Libraries
 import argparse  
