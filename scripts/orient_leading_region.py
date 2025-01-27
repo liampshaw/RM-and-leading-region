@@ -78,15 +78,17 @@ def find_dna_palindromes(sequence, k):
 
 def palindrome_density(sequence, k, window_size, step_size):
     palindrome_locations = find_dna_palindromes(sequence, k)
-    densities = []
+    results = []
     for start in range(0, len(sequence) - window_size + 1, step_size):
         end = start + window_size
         count = sum(1 for loc in palindrome_locations if start <= loc < end)
         density = count / window_size
-        densities.append((start, 
+        results.append((start,
+        	window_size, 
+        	count,
         	density, 
         	sequence[start:end].count('G')+sequence[start:end].count('C')))
-    return densities
+    return results
 
 def leading_region(plasmid_fasta, 
 								start_position,
