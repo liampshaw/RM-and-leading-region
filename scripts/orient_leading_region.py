@@ -75,21 +75,6 @@ def find_dna_palindromes(sequence, k):
             locations.append(i)
     return locations
 
-def palindrome_probability(k, gc_content):
-    # This is for probability of a random sequence being a palindrome - not the same as palindrome density in a random sequence
-    if k % 2 != 0:
-        # Odd-length palindromes are impossible in DNA because of base pairing
-        return 0
-    # Probability of a GC or CG pair
-    gc_prob = (gc_content / 2) ** 2
-    # Probability of an AT or TA pair
-    at_prob = ((1 - gc_content) / 2) ** 2
-    # For a palindrome, the first half of the sequence determines the second half
-    half_k = k // 2
-    # Probability that the first half forms a palindrome
-    palindrome_prob = (gc_prob + at_prob) ** half_k
-    return palindrome_prob
-
 
 def palindrome_density(sequence, k, window_size, step_size):
     palindrome_locations = find_dna_palindromes(sequence, k)
@@ -98,7 +83,9 @@ def palindrome_density(sequence, k, window_size, step_size):
         end = start + window_size
         count = sum(1 for loc in palindrome_locations if start <= loc < end)
         density = count / window_size
-        densities.append((start, density, sequence[start:end].count('G')+sequence[start:end].count('C'), palindrome_probability(6, float(sequence[start:end].count('G')+sequence[start:end].count('C'))/float(window_size))))
+        densities.append((start, 
+        	density, 
+        	sequence[start:end].count('G')+sequence[start:end].count('C')))
     return densities
 
 def leading_region(plasmid_fasta, 
