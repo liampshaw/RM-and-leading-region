@@ -1,5 +1,6 @@
 zenodo/
 .DS_Store
 *.html
+test*
 scripts/.Rhistory
 scripts/__pycache__/
