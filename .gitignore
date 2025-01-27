@@ -1,3 +1,4 @@
 zenodo/
 .DS_Store
 *.html
+scripts/.Rhistory
