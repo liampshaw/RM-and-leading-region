@@ -3,6 +3,7 @@
 library(ggplot2)
 library(knitr)
 library(xtable)
+library(dplyr)
 ```
 
 ## Compare hard shell genes vs. accessory
@@ -112,7 +113,7 @@ plasmid.table = read.csv('data/plasmid_table.tsv', sep='\t')
 retained.PTUs.lr = read.csv('data/leading-region-PTUs.txt', header=F)$V1
 lr.identified.PTU.names = sort(unique(lr$PTU))
 # Minimum sizes
-sort(sapply(lr.identified.PTU.names, function(x) 
+PTU.min.sizes = sort(sapply(lr.identified.PTU.names, function(x) 
   min(plasmid.table[plasmid.table$PTU==x, "Size"])))
 ```
 
@@ -123,3 +124,55 @@ sort(sapply(paste0("PTU-E", c("1", "3", "9", "10", "14", "76")), function(x)
   max(plasmid.table[plasmid.table$PTU==x, "Size"])))
 ```
 
+These PTUs are retained for analysing the leading region:
+
+```{r}
+cat(sort(names(PTU.min.sizes[PTU.min.sizes>20000])), sep="\n")
+```
+### Sliding window analysis
+
+```{r}
+# Theoretical expectation for 6-bp palindrome density
+theoreticalExpectation = function(p){# p is GC content
+  return ((p**2 - p + 1/2)**3)
+}
+d = read.csv('../test_output.csv', header=F, stringsAsFactors = F)
+d.reduced = d[which((d$V3 %% 500)==0), ]
+
+colnames(d.reduced) = c("PTU", "plasmid", "x", "density", "GC_n", "expected_density")
+d.reduced$expected_density_new_calc = theoreticalExpectation(d.reduced$GC_n/500)
+
+d.reduced$diff_density = d.reduced$density-d.reduced$expected_density_new_calc
+
+medians = d.reduced %>% group_by(PTU, plasmid) %>%
+  summarise(median=median(density)) %>% group_by(PTU) %>%
+  summarise(median=median(median))
+
+
+# One line per plasmid
+d.reduced.median = d.reduced %>% group_by(PTU, x) %>% 
+  summarise(median=median(diff_density),
+            n=length(diff_density), 
+            median.original=median(density),
+            GC=median(GC_n))
+
+# Maximum counts
+d.reduced.median.plot = d.reduced.median %>% 
+  group_by(PTU) %>%
+  mutate(max_n = max(n, na.rm = TRUE),  # Calculate max 'n' for each 'PTU'
+         normalized_n = n / max_n * 100) %>%  # Normalize 'n' by this max value
+  ungroup() %>%  # Remove the grouping
+  select(-max_n)  # Optionally remove the max_n column if not needed
+# Plot the distribution
+p.lines.expectation = ggplot(d.reduced.median.plot, aes(x, median))+
+  geom_hline(yintercept = 0, linetype='dashed')+
+  theme_bw()+
+  geom_path(aes(group=PTU, alpha=normalized_n))+
+  facet_wrap(~PTU, scales="free_x", nrow=3)+
+  ylab("6-mer palindrome density (5kb window)")+
+  labs(alpha="% of plasmids within PTU")+
+  theme(panel.grid=element_blank())+  
+  scale_x_continuous(labels = function(x) x / 1000) +
+  xlab("Position on plasmid (kb)")+
+  theme(legend.position = c(0.8, 0.2))
+```

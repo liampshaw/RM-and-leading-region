@@ -2,3 +2,4 @@ zenodo/
 .DS_Store
 *.html
 scripts/.Rhistory
+scripts/__pycache__/
