@@ -1,4 +1,3 @@
-# Compare hard shell genes vs. accessory
 
 ```{r}
 library(ggplot2)
@@ -6,6 +5,10 @@ library(knitr)
 library(xtable)
 ```
 
+## Compare hard shell genes vs. accessory
+
+
+### Short palindromes (k=4, 6)
 
 ```{r}
 # Pangenome statistics for PTUs
@@ -30,6 +33,7 @@ ggplot(df_4_filter, aes(x="k=4", wilcoxon_stat, colour=p_value<0.05))+
   geom_point()
 ```
 
+### All RM targets (not included in main text)
 
 ```{r }
 df_4 = read.csv('~/Downloads/trieste/test_4mer_targets.csv')
@@ -57,6 +61,8 @@ results_df = data.frame(median_discrepancy_targets=c(median(df_4_filter$discrepa
 kable(results_df, digits = 3, format = "html")
 
 ```
+
+### Hard shell vs. accessory for within-range RM targets
 
 ```{r}
 # Read in results for RM targets
@@ -95,3 +101,25 @@ results_df = data.frame(n_PTUs = c(nrow(df_4_filter),
                      wilcox_tests[[3]]$p.value))
 kable(results_df, digits = 3, format = "html")
 ```
+
+## Analysis of leading region
+
+Some preliminary statistics about discarded PTUs (for main text). 
+
+```{r}
+lr = read.csv('data/leading_region_081123.tsv', sep='\t')
+plasmid.table = read.csv('data/plasmid_table.tsv', sep='\t')
+retained.PTUs.lr = read.csv('data/leading-region-PTUs.txt', header=F)$V1
+lr.identified.PTU.names = sort(unique(lr$PTU))
+# Minimum sizes
+sort(sapply(lr.identified.PTU.names, function(x) 
+  min(plasmid.table[plasmid.table$PTU==x, "Size"])))
+```
+
+We discard those where the minimum size is <20kb: E1, E3, E9, E10, E14, E76. We check the maximum size per PTU:
+
+```{r}
+sort(sapply(paste0("PTU-E", c("1", "3", "9", "10", "14", "76")), function(x) 
+  max(plasmid.table[plasmid.table$PTU==x, "Size"])))
+```
+

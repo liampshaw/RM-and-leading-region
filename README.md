@@ -29,6 +29,14 @@ These can then be used to generate discrepancy scores for within-range targets u
 python scripts/run-rmes-score-discrepancy.py --script scripts/rmes-score-discrepancy.py --dir ~/Downloads/trieste/ --kmers per-PTU --output results/rmes_discrepancies_targets_k6.csv  --k 6
 ```
 
+For the analysis of the leading region, we used scripts available at []()
+
+Information on the leading region of 13 conjugative PTUs is available at 
+
+## Paper analysis
+
+The main analysis presented in the paper is performed in `scripts/Paper-analysis.Rmd`. 
+
 
 # Python dependencies
 
