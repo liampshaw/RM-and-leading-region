@@ -135,28 +135,24 @@ cat(leading.region.PTUs, sep="\n")
 k=6 
 ```{r}
 # Theoretical expectation for 6-bp palindrome density
-theoreticalExpectation = function(p){# p is GC content
+theoreticalPalindromeExpectation = function(p){# p is GC content
   return ((p**2 - p + 1/2)**3)
 }
-d = read.csv('../test_output.csv', header=F, stringsAsFactors = F)
-colnames(d) = c("PTU", "plasmid", "x", "density", "GC_n")
+d = read.csv('../test_output_window1000_step1000.csv', header=F, stringsAsFactors = F)
+colnames(d) = c("PTU", "plasmid", "x", "window_size", "palindrome_count", "palindrome_density", "GC_n")
 
 d.reduced = d[which(d$PTU %in% leading.region.PTUs), ]
 
-d.reduced$expected_density_new_calc = theoreticalExpectation(d.reduced$GC_n/5000)
+d.reduced$expected_density = theoreticalPalindromeExpectation(d.reduced$GC_n/d.reduced$window_size)
 
-d.reduced$diff_density = d.reduced$density-d.reduced$expected_density_new_calc
-
-medians = d.reduced %>% group_by(PTU, plasmid) %>%
-  summarise(median=median(density)) %>% group_by(PTU) %>%
-  summarise(median=median(median))
+d.reduced$diff_density = d.reduced$palindrome_density-d.reduced$expected_density
 
 
 # One line per plasmid
 d.reduced.median = d.reduced %>% group_by(PTU, x) %>% 
   summarise(median=median(diff_density),
             n=length(diff_density), 
-            median.original=median(density),
+            median.original=median(palindrome_density),
             GC=median(GC_n))
 
 # Maximum counts
@@ -178,7 +174,7 @@ p.lines.expectation = ggplot(d.reduced.median.plot, aes(x, median))+
   scale_x_continuous(labels = function(x) x / 1000) +
   xlab("Position on plasmid (kb)")+
   theme(legend.position = c(0.8, 0.2))
-ggsave(p.lines.expectation, file='../results/6mer-deviation-expectation.pdf'.
+ggsave(p.lines.expectation, file='../results/6mer-deviation-expectation.pdf',
        width=10, height=8)
 ```
 
