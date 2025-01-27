@@ -108,9 +108,9 @@ kable(results_df, digits = 3, format = "html")
 Some preliminary statistics about discarded PTUs (for main text). 
 
 ```{r}
-lr = read.csv('data/leading_region_081123.tsv', sep='\t')
-plasmid.table = read.csv('data/plasmid_table.tsv', sep='\t')
-retained.PTUs.lr = read.csv('data/leading-region-PTUs.txt', header=F)$V1
+lr = read.csv('../data/leading_region_081123.tsv', sep='\t')
+plasmid.table = read.csv('../data/plasmid_table.tsv', sep='\t')
+retained.PTUs.lr = read.csv('../data/leading-region-PTUs.txt', header=F)$V1
 lr.identified.PTU.names = sort(unique(lr$PTU))
 # Minimum sizes
 PTU.min.sizes = sort(sapply(lr.identified.PTU.names, function(x) 
@@ -127,20 +127,23 @@ sort(sapply(paste0("PTU-E", c("1", "3", "9", "10", "14", "76")), function(x)
 These PTUs are retained for analysing the leading region:
 
 ```{r}
-cat(sort(names(PTU.min.sizes[PTU.min.sizes>20000])), sep="\n")
+leading.region.PTUs = sort(names(PTU.min.sizes[PTU.min.sizes>20000]))
+cat(leading.region.PTUs, sep="\n")
 ```
 ### Sliding window analysis
 
+k=6 
 ```{r}
 # Theoretical expectation for 6-bp palindrome density
 theoreticalExpectation = function(p){# p is GC content
   return ((p**2 - p + 1/2)**3)
 }
 d = read.csv('../test_output.csv', header=F, stringsAsFactors = F)
-d.reduced = d[which((d$V3 %% 500)==0), ]
+colnames(d) = c("PTU", "plasmid", "x", "density", "GC_n")
 
-colnames(d.reduced) = c("PTU", "plasmid", "x", "density", "GC_n", "expected_density")
-d.reduced$expected_density_new_calc = theoreticalExpectation(d.reduced$GC_n/500)
+d.reduced = d[which(d$PTU %in% leading.region.PTUs), ]
+
+d.reduced$expected_density_new_calc = theoreticalExpectation(d.reduced$GC_n/5000)
 
 d.reduced$diff_density = d.reduced$density-d.reduced$expected_density_new_calc
 
@@ -169,10 +172,14 @@ p.lines.expectation = ggplot(d.reduced.median.plot, aes(x, median))+
   theme_bw()+
   geom_path(aes(group=PTU, alpha=normalized_n))+
   facet_wrap(~PTU, scales="free_x", nrow=3)+
-  ylab("6-mer palindrome density (5kb window)")+
+  ylab("Deviation from expected 6-mer palindrome density (5kb sliding window)")+
   labs(alpha="% of plasmids within PTU")+
   theme(panel.grid=element_blank())+  
   scale_x_continuous(labels = function(x) x / 1000) +
   xlab("Position on plasmid (kb)")+
   theme(legend.position = c(0.8, 0.2))
+ggsave(p.lines.expectation, file='../results/6mer-deviation-expectation.pdf'.
+       width=10, height=8)
 ```
+
+Repeat for k=4?
