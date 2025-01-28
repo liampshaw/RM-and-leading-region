@@ -71,15 +71,16 @@ if __name__=="__main__":
 		plasmid_name = re.sub(".fasta", "", re.sub(".*\\/", "", fasta_file))
 		ptu_name = re.sub(".*06_plaspan\\/", "", re.sub("\\/_fasta.*", "", fasta_file))
 		if plasmid_name in leading_region_df.index:
-			print(plasmid_name, ptu_name)
-			leading_region_string = leading_region_df.loc[plasmid_name]["Leading Region"]
-			leading_region_start = re.sub(" in.*", "", re.sub("From ", "", leading_region_string))
-			#print(leading_region_start)
-			leading_region_orientation = re.sub(".*in ", "", re.sub(" direction.", "", leading_region_string))
-			new_seqs = leading_and_lagging(fasta_file, leading_region_start, leading_region_orientation, size=size_region)
-			with open(output_dir+'/'+plasmid_name+'_leading_'+str(size_region)+'.fa', 'w') as f:
-				f.write('>test\n%s' % new_seqs[0])
-			with open(output_dir+'/'+plasmid_name+'_lagging_'+str(size_region)+'.fa', 'w') as f:
-				f.write('>test\n%s' % new_seqs[1])
+			if len(leading_region_df.loc[plasmid_name])!=2: # ignore double oriT
+print(plasmid_name, ptu_name)
+				leading_region_string = leading_region_df.loc[plasmid_name]["Leading Region"]
+				leading_region_start = re.sub(" in.*", "", re.sub("From ", "", leading_region_string))
+				#print(leading_region_start)
+				leading_region_orientation = re.sub(".*in ", "", re.sub(" direction.", "", leading_region_string))
+				new_seqs = leading_and_lagging(fasta_file, leading_region_start, leading_region_orientation, size=size_region)
+				with open(output_dir+'/'+plasmid_name+'_leading_'+str(size_region)+'.fa', 'w') as f:
+					f.write('>test\n%s' % new_seqs[0])
+				with open(output_dir+'/'+plasmid_name+'_lagging_'+str(size_region)+'.fa', 'w') as f:
+					f.write('>test\n%s' % new_seqs[1])
 
 
