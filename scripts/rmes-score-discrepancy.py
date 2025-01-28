@@ -5,13 +5,13 @@ import argparse
 
 def read_args():
     parser = argparse.ArgumentParser(description="Calculate median discrepancies and perform Wilcoxon test.")
-    parser.add_argument("--core", required=True, help="Path to the core CSV file.")
-    parser.add_argument("--accessory", required=True, help="Path to the accessory CSV file.")
+    parser.add_argument("--file1", required=True, help="Path to the first CSV file (e.g. core genes).")
+    parser.add_argument("--file2", required=True, help="Path to the other CSV file (e.g. accessory genes).")
     parser.add_argument("--kmers", required=True, help="Path to the kmers text file.")
 
     return parser.parse_args()
 
-# Load data from core and accessory files
+# Load data from a csv file
 def load_csv(file):
     return pd.read_csv(file)
 
@@ -20,19 +20,19 @@ def load_kmers(file):
     with open(file, 'r') as f:
         return set(line.strip().lower() for line in f)
 
-def calculate_discrepancy_and_test(core_file, accessory_file, kmers_file):
-    # Load core and accessory data
-    core = load_csv(core_file)
-    accessory = load_csv(accessory_file)
+def calculate_discrepancy_and_test(first_file, second_file, kmers_file):
+    # Load the data from both files
+    df1 = load_csv(first_file)
+    df2 = load_csv(second_file)
 
     # Load k-mers
     kmers = load_kmers(kmers_file)
 
-    # Merge core and accessory on "word"
-    merged = pd.merge(core, accessory, on='word', suffixes=('_core', '_accessory'))
+    # Merge on "word"
+    merged = pd.merge(df1, df2, on='word', suffixes=('_file1', '_file2'))
 
     # Calculate score discrepancy
-    merged['score_discrepancy'] = merged['score_core'] - merged['score_accessory']
+    merged['score_discrepancy'] = merged['score_file1'] - merged['score_file2']
 
     # Separate into k-mers and other words
     kmers_data = merged[merged['word'].isin(kmers)]
@@ -59,8 +59,8 @@ def calculate_discrepancy_and_test(core_file, accessory_file, kmers_file):
 # Example usage
 if __name__ == "__main__":
     args = read_args()
-    results = calculate_discrepancy_and_test(args.core, args.accessory, args.kmers)
-    filename_base = args.core.split('_')[0].rsplit("/", 1)[-1]
+    results = calculate_discrepancy_and_test(args.file1, args.file2, args.kmers)
+    filename_base = args.file1.split('_')[0].rsplit("/", 1)[-1]
 
     results = [filename_base,results['n_special_kmers'], results['median_discrepancy_kmers'], results['median_discrepancy_others'], results['wilcoxon_statistic'],results['p_value']]
     print(','.join([str(x) for x in results]))
