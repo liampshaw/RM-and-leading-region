@@ -163,12 +163,12 @@ d.reduced.median.plot = d.reduced.median %>%
   ungroup() %>%  # Remove the grouping
   select(-max_n)  # Optionally remove the max_n column if not needed
 # Plot the distribution
-p.lines.expectation = ggplot(d.reduced.median.plot, aes(x, median))+
+p.lines.expectation = ggplot(d.reduced.median.plot, aes(x, median*1000))+
   geom_hline(yintercept = 0, linetype='dashed')+
   theme_bw()+
   geom_path(aes(group=PTU, alpha=normalized_n))+
   facet_wrap(~PTU, scales="free_x", nrow=3)+
-  ylab("Deviation from expected 6-mer palindrome density (5kb sliding window)")+
+  ylab("Palindrome depletion per kb (5kb sliding window)")+
   labs(alpha="% of plasmids within PTU")+
   theme(panel.grid=element_blank())+  
   scale_x_continuous(labels = function(x) x / 1000) +
@@ -176,6 +176,42 @@ p.lines.expectation = ggplot(d.reduced.median.plot, aes(x, median))+
   theme(legend.position = c(0.8, 0.2))
 ggsave(p.lines.expectation, file='../results/6mer-deviation-expectation.pdf',
        width=10, height=6)
+# Plot only first 25kb
+ggsave(p.lines.expectation+scale_x_continuous(labels = function(x) x / 1000, limits=c(0,50000)), file='../results/6mer-deviation-expectation-0-50-kb.pdf',
+       width=10, height=6)
+
 ```
 
-Repeat for k=4?
+### Compare leading region to rest of plasmid
+
+```{r}
+# Start from d.reduced, which contains per-plasmid results with 5000bp sliding window and step size of 500bp
+# Compare depletion in first 5kb with average for the rest of the plasmid
+diff.leading.region.average = d.reduced %>% 
+  group_by(plasmid, PTU) %>%
+  mutate(diff.count=palindrome_count[x=="0"]-mean(palindrome_count),
+         diff.density=diff_density[x=="0"]-mean(diff_density)) %>%
+  filter(x=="0")
+
+# Order the PTUs by mean values of depletion for better visual display
+mean.values = diff.leading.region.average %>% group_by(PTU) %>%
+  summarise(mean=mean(diff.density)*1000)
+diff.leading.region.average$PTU = ordered(diff.leading.region.average$PTU,
+                                          levels=mean.values$PTU[order(mean.values$mean)])
+p.leading.region.diff.density = ggplot(diff.leading.region.average, aes(as.factor(PTU), diff.density*1000))+ # depletion per-kb rather than per-bp
+  ggbeeswarm::geom_quasirandom(alpha=0.8)+
+  theme_bw()+
+  theme(panel.grid = element_blank())+
+  geom_hline(yintercept = 0)+
+  xlab("")+
+  theme(axis.text=element_text(colour="black"))+
+  ylab("Palindrome depletion in leading region (per kb)")+
+  coord_flip()
+p.leading.region.diff.density
+# Based on this, remove two outliers
+p.leading.region.diff.density = p.leading.region.diff.density+
+  ylim(c(-10,5))
+ggsave(p.leading.region.diff.density, file='../results/6mer-deviation-leading-region-vs-rest-of-plasmid-density.pdf',
+       width=5, height=4)
+```
+
