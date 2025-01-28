@@ -72,7 +72,7 @@ if __name__=="__main__":
 		ptu_name = re.sub(".*06_plaspan\\/", "", re.sub("\\/_fasta.*", "", fasta_file))
 		if plasmid_name in leading_region_df.index:
 			if len(leading_region_df.loc[plasmid_name])!=2: # ignore double oriT
-print(plasmid_name, ptu_name)
+				print(plasmid_name, ptu_name)
 				leading_region_string = leading_region_df.loc[plasmid_name]["Leading Region"]
 				leading_region_start = re.sub(" in.*", "", re.sub("From ", "", leading_region_string))
 				#print(leading_region_start)
