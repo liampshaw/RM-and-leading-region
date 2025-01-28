@@ -60,7 +60,7 @@ def calculate_discrepancy_and_test(first_file, second_file, kmers_file):
 if __name__ == "__main__":
     args = read_args()
     results = calculate_discrepancy_and_test(args.file1, args.file2, args.kmers)
-    filename_base = args.file1.split('_')[0].rsplit("/", 1)[-1]
+    filename_base = args.file1.split('_')[0].rsplit("/", 1)[-1] # Need to replace this with more general approach
 
     results = [filename_base,results['n_special_kmers'], results['median_discrepancy_kmers'], results['median_discrepancy_others'], results['wilcoxon_statistic'],results['p_value']]
     print(','.join([str(x) for x in results]))
