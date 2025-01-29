@@ -53,7 +53,6 @@ def merge_comparisons(directory, kmers_file, k):
     all_scores = []
     all_counts = []
     for leading_file, lagging_file in zip(leading_files, lagging_files):
-        print(leading_file, lagging_file)
         results = merge_score_files(leading_file, lagging_file, kmers_file)
         all_scores.append(results[0])
         all_counts.append(results[1])
@@ -65,7 +64,6 @@ def merge_comparisons(directory, kmers_file, k):
 if __name__ == "__main__":
     args = read_args()
     kmers = sorted(load_kmers(args.kmers))
-    print(kmers)
     results = merge_comparisons(args.directory, args.kmers, args.k)
     # Only use k-mers of right length
     kmers_reduced = [k for k in kmers if len(k)==int(args.k)]
