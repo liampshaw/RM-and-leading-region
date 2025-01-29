@@ -318,16 +318,41 @@ Test for a particular PTU.
 
 ```{r}
 
-scores_df = read.csv('../test_bokz_k5_scores.csv', header=T)
-scores_average <- scores_df %>%
+results = NULL
+for (PTU in leading.region.PTUs){
+  for (k in c(5,6)){
+    scores_df = read.csv(paste0('../test_target_leading_lagging/', PTU, '_k', k, '_scores.csv'), header=T)
+    n_targets = nrow(scores_df)
+    scores_average <- scores_df %>%
   rowwise() %>%
   mutate(score_avg = mean(c_across(starts_with("score")))) %>%
   ungroup() %>%
-  select(kmer, score_avg)  
-# Order by average score
-scores_average$kmer = ordered(scores_average$kmer,
-                              levels=scores_average$kmer[order(scores_average$score_avg)])
-scores.plot = ggplot(scores_average, aes(kmer, score_avg))+geom_point()+
-  coord_flip()
+  select(kmer, score_avg)
+    results = rbind(results, c(PTU, k, n_targets, median(scores_average$score_avg)))
+  }
+}
+
+results = data.frame(results)
+colnames(results) = c("PTU", "k", "n.targets", "median.score")
+results$median.score= as.numeric(results$median.score)
+
+# Order by median score for k=6
+order.k.6.scores = results[which(results$k==6), "PTU"][order(results[which(results$k==6), "median.score"])]
+results$PTU = ordered(results$PTU,
+                      levels=rev(order.k.6.scores))
+p.depletion.targets = ggplot(results, aes(median.score, as.factor(PTU)))+
+  geom_vline(xintercept = 0, size=1)+
+  geom_bar(stat="identity", position="dodge")+
+  facet_wrap(~k, scales="free_x")+
+  ylab("")+
+  xlab("Median depletion score of within-range RM targets\n(leading vs. lagging, 10kb)")+
+   theme_bw()+
+  theme(panel.grid = element_blank())+
+  theme(axis.text=element_text(colour="black", size=12),
+        axis.title.x=element_text(size=24),
+        axis.text.x=element_text(size=18))+
+  theme(axis.text.y=element_text(hjust=0))
+ggsave(p.depletion.targets, file='../results/figure-depletion-within-range-targets.pdf',
+       width=10, height=6)
 ```
 
