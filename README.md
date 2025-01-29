@@ -47,6 +47,8 @@ We calculate the RMES scores for the leading vs. lagging region and then using t
 ```
 python scripts/rmes-score-discrepancy-leading-lagging.py --directory ~/Downloads/trieste/leading_lagging/ --kmers ~/Downloads/trieste/k6.txt --output test_6mer_leading_lagging --k 6
 ```
+
+We then analyse the depletion in leading vs. lagging for within-range targets per PTU with `test_run_comparison_PTUs.sh`
  
 ## Paper analysis
 
