@@ -35,6 +35,18 @@ We identified leading regions of plasmids as outlined in the paper. Information 
 ```
 python scripts/orient_leading_region.py --output test_output_window5000_step500.csv --fasta_file_search "/Users/Liam/Downloads/06_plaspan/*/_fasta/*" --leading_region_file data/leading_region_081123.tsv --leading_region_size 5000 --sliding_window 5000 --step_size 500 --k 6
 ```
+
+We split the leading and lagging region (10kb) with 
+
+```
+ python scripts/split_leading_and_lagging.py --output_dir test_regions --fasta_file_search "/Users/Liam/Downloads/06_plaspan/*/_fasta/*" --leading_region_file data/leading_region_081123.tsv --leading_region_size 10000
+```
+
+We calculate the RMES scores for the leading vs. lagging region and then using those results calculate the difference with 
+
+```
+python scripts/rmes-score-discrepancy-leading-lagging.py --directory ~/Downloads/trieste/leading_lagging/ --kmers ~/Downloads/trieste/k6.txt --output test_6mer_leading_lagging --k 6
+```
  
 ## Paper analysis
 
