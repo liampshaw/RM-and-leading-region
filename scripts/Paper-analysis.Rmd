@@ -196,22 +196,63 @@ diff.leading.region.average = d.reduced %>%
 # Order the PTUs by mean values of depletion for better visual display
 mean.values = diff.leading.region.average %>% group_by(PTU) %>%
   summarise(mean=mean(diff.density)*1000)
-diff.leading.region.average$PTU = ordered(diff.leading.region.average$PTU,
-                                          levels=mean.values$PTU[order(mean.values$mean)])
+diff.leading.region.average$PTU = ordered(gsub("PTU-", "", diff.leading.region.average$PTU),
+                                          levels=gsub("PTU-", "", mean.values$PTU[order(mean.values$mean)]))
 p.leading.region.diff.density = ggplot(diff.leading.region.average, aes(as.factor(PTU), diff.density*1000))+ # depletion per-kb rather than per-bp
   ggbeeswarm::geom_quasirandom(alpha=0.8)+
   theme_bw()+
   theme(panel.grid = element_blank())+
   geom_hline(yintercept = 0)+
   xlab("")+
-  theme(axis.text=element_text(colour="black"))+
+  theme(axis.text=element_text(colour="black", size=18))+
   ylab("Palindrome depletion in leading region (per kb)")+
-  coord_flip()
+  theme(axis.text.x=element_text(angle=45, hjust=1))+
+  ylab("")
 p.leading.region.diff.density
 # Based on this, remove two outliers
 p.leading.region.diff.density = p.leading.region.diff.density+
-  ylim(c(-10,5))
+  scale_y_continuous(breaks=seq(-8, 4, 2), limits=c(-8,5))
 ggsave(p.leading.region.diff.density, file='../results/6mer-deviation-leading-region-vs-rest-of-plasmid-density.pdf',
-       width=5, height=4)
+       width=5.5, height=6)
+```
+### Averaging over all plasmids
+
+Similar to Samuel et al.'s display of anti-defence gene density, average over all conjugative plasmids.
+
+```{r}
+overall.median = d.reduced %>% filter(x<50000) %>%
+  group_by(x) %>%
+  summarise(y=median(diff_density),
+            n=length(diff_density))
+p.overall.average = ggplot(overall.median, aes(x, y*1000))+
+  geom_line()+
+  scale_y_continuous(breaks=seq(-10, 0, 2), limits = c(-9, 0))+
+  theme_bw()+
+  theme(panel.grid = element_blank())+
+  geom_hline(yintercept = 0, linetype='dashed')+
+  ylab("Palindrome depletion (per kb)")+
+    scale_x_continuous(labels = function(x) x / 1000) +
+  xlab("Position on plasmid (kb)")+
+  theme(axis.text=element_text(colour="black"))
+p.overall.average
+# Save
+ggsave(p.overall.average, file='../results/6mer-deviation-overall.pdf', 
+       width=3, height=3)
 ```
 
+```{r}
+lagging.df = read.csv('~/Downloads/trieste/leading_lagging/NZ_LT994833.1_lagging_10000_k6.csv', header=T)
+leading.df = read.csv('~/Downloads/trieste/leading_lagging/NZ_LT994833.1_leading_10000_k6.csv', header=T)
+merged.df = merge(leading.df, lagging.df, by="word")
+palindromes = tolower(read.csv('~/Downloads/trieste/k6.txt', header=F)$V1)
+ggplot(merged.df[which(merged.df$word %in% palindromes),], aes(score.x, score.y))+
+  geom_point()
+merged.df.palindromes = merged.df[which(merged.df$word %in% palindromes),]
+table(merged.df.palindromes$score.x<merged.df.palindromes$score.y)
+kmer_targets = tolower(read.csv('~/Downloads/trieste/PTU-LM_targets.txt', header=F)$V1)
+ggplot(merged.df[which(merged.df$word %in% kmer_targets),], aes(score.x, score.y))+
+  geom_point()
+merged.df.targets = merged.df[which(merged.df$word %in% kmer_targets),]
+table(merged.df.targets$score.x<merged.df.targets$score.y)
+
+```
