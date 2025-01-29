@@ -4,6 +4,7 @@ library(ggplot2)
 library(knitr)
 library(xtable)
 library(dplyr)
+library(tidyr)
 ```
 
 ## Compare hard shell genes vs. accessory
@@ -328,18 +329,27 @@ for (PTU in leading.region.PTUs){
   mutate(score_avg = mean(c_across(starts_with("score")))) %>%
   ungroup() %>%
   select(kmer, score_avg)
-    results = rbind(results, c(PTU, k, n_targets, median(scores_average$score_avg)))
+    counts_df = read.csv(paste0('../test_target_leading_lagging/', PTU, '_k', k, '_counts.csv'), header=T)
+    counts_average <- counts_df %>%
+  rowwise() %>%
+  mutate(count_avg = mean(c_across(starts_with("count")))) %>%
+  ungroup() %>%
+  select(kmer, count_avg)
+    results = rbind(results, c(PTU, k, n_targets, median(scores_average$score_avg), median(counts_average$count_avg)))
   }
 }
 
 results = data.frame(results)
-colnames(results) = c("PTU", "k", "n.targets", "median.score")
+colnames(results) = c("PTU", "k", "n.targets", "median.score", "median.count")
 results$median.score= as.numeric(results$median.score)
+results$median.count = as.numeric(results$median.count)
 
 # Order by median score for k=6
 order.k.6.scores = results[which(results$k==6), "PTU"][order(results[which(results$k==6), "median.score"])]
 results$PTU = ordered(results$PTU,
                       levels=rev(order.k.6.scores))
+# Add number of targets to each
+
 p.depletion.targets = ggplot(results, aes(median.score, as.factor(PTU)))+
   geom_vline(xintercept = 0, size=1)+
   geom_bar(stat="identity", position="dodge")+
@@ -354,5 +364,12 @@ p.depletion.targets = ggplot(results, aes(median.score, as.factor(PTU)))+
   theme(axis.text.y=element_text(hjust=0))
 ggsave(p.depletion.targets, file='../results/figure-depletion-within-range-targets.pdf',
        width=10, height=6)
+
+# Is there a correlation between k=5 and k=6 results?
+results.df = results %>% select(k, median.score, PTU) %>%
+  pivot_wider(
+    names_from = k,  # Use values of 'k' as new column names
+    values_from = median.score  # Use 'median.score' for the column values
+)
 ```
 
