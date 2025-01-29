@@ -256,3 +256,50 @@ merged.df.targets = merged.df[which(merged.df$word %in% kmer_targets),]
 table(merged.df.targets$score.x<merged.df.targets$score.y)
 
 ```
+
+### Palindromes in leading vs. lagging
+
+```{r}
+scores_df = read.csv('../test_6mer_leading_lagging_scores.csv', header=T)
+scores_average <- scores_df %>%
+  rowwise() %>%
+  mutate(score_avg = mean(c_across(starts_with("score")))) %>%
+  ungroup() %>%
+  select(kmer, score_avg)  
+# Order by average score
+scores_average$kmer = ordered(scores_average$kmer,
+                              levels=scores_average$kmer[order(scores_average$score_avg)])
+scores.plot = ggplot(scores_average, aes(kmer, score_avg))+geom_point()+
+  coord_flip()
+
+# Same for counts
+counts_df = read.csv('../test_6mer_leading_lagging_counts.csv', header=T)
+counts_average <- counts_df %>%
+  rowwise() %>%
+  mutate(count_avg = mean(c_across(starts_with("count")))) %>%
+  ungroup() %>%
+  select(kmer, count_avg)  
+
+# Merge together
+merge_scores_counts = merge(counts_average, scores_average, by="kmer")
+# average score and average count are well-correlated
+ggplot(merge_scores_counts, aes(count_avg, score_avg))+geom_point()
+
+# Order by average score
+merge_scores_counts$kmer = ordered(merge_scores_counts$kmer,
+                              levels=scores_average$kmer[order(scores_average$score_avg)])
+scores.plot = ggplot(merge_scores_counts, aes(score_avg, kmer))+
+    geom_vline(xintercept = 0)+
+  geom_bar(stat="identity")+
+  geom_vline(xintercept = median(merge_scores_counts$score_avg), linetype='dashed', colour='red')+
+  theme_bw()+
+  theme(axis.text=element_text(colour="black", size=12),
+        axis.title.x=element_text(size=24),
+        axis.text.x=element_text(size=18))+
+  theme(axis.text.y=element_text(hjust=0))+
+  ylab("")+
+  xlab("Mean depletion score\n(leading vs. lagging, 10kb)")
+wilcox.test(merge_scores_counts$score_avg)
+ggsave(scores.plot, file='../results/6mer-palindromes-scores.pdf',
+       height=10, width=10)
+```
