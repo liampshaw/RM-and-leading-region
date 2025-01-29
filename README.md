@@ -27,6 +27,7 @@ We created a database of targets by PTU (i.e. for a given PTU, the set of all mo
 These can then be used to generate discrepancy scores for within-range targets using e.g.
 ```
 python scripts/run-rmes-score-discrepancy.py --script scripts/rmes-score-discrepancy.py --dir ~/Downloads/trieste/ --kmers per-PTU --output results/rmes_discrepancies_targets_k6.csv  --k 6
+# N.B. Wrapper script needs to be updated to pass correct arguments, given changes to rmes-score-discrepancy.py
 ```
 
 We identified leading regions of plasmids as outlined in the paper. Information on the leading region of PTUs is available at `data/leading_region_081123.tsv`. We then analyse this with `scripts/orient_leading_region.py`: 
@@ -39,6 +40,7 @@ python scripts/orient_leading_region.py --output test_output_window5000_step500.
 
 The main analysis presented in the paper is performed in `scripts/Paper-analysis.Rmd`. 
 
+The figure showing overall depletion in leading region was made by combining files in `results` in Inkscape: `6mer-leading-region-vs-rest-of-plasmid-density.pdf` and `6mer-deviation-overall.pdf`, both made by the Rmarkdown script. 
 
 # Python dependencies
 
