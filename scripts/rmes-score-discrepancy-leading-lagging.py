@@ -38,6 +38,7 @@ def merge_score_files(first_file, second_file, kmer_file):
     merged['count_discrepancy'] = merged['count_file1'] - merged['count_file2']
 
     merged = merged[merged['word'].isin(kmers)]
+    kmers_used = merged['word']
     merged = merged[['word', 'score_discrepancy', 'count_discrepancy']]
     sorted_df = merged.sort_values(by='word')
     return [list(sorted_df['score_discrepancy']) , list(sorted_df['count_discrepancy'])]
@@ -66,19 +67,22 @@ if __name__ == "__main__":
     kmers = sorted(load_kmers(args.kmers))
     print(kmers)
     results = merge_comparisons(args.directory, args.kmers, args.k)
+    # Only use k-mers of right length
+    kmers_reduced = [k for k in kmers if len(k)==int(args.k)]
+
     scores = results[0]
     counts = results[1]
     # Convert scores list of lists into a DataFrame
     scores_df = pd.DataFrame(scores).T  # Transpose to align scores with kmers
     # Assign column names
     scores_df.columns = [f'score{i+1}' for i in range(len(scores))]
-    scores_df.insert(0, 'kmer', kmers)  # Insert kmers as the first column
+    scores_df.insert(0, 'kmer', kmers_reduced)  # Insert kmers as the first column
     scores_df.to_csv(args.output+'_scores.csv', index=False)
 
     counts_df = pd.DataFrame(counts).T  # Transpose to align scores with kmers
     # Assign column names
     counts_df.columns = [f'count{i+1}' for i in range(len(scores))]
-    counts_df.insert(0, 'kmer', kmers)  # Insert kmers as the first column
+    counts_df.insert(0, 'kmer', kmers_reduced)  # Insert kmers as the first column
     counts_df.to_csv(args.output+'_counts.csv', index=False)
 
 

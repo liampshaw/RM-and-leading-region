@@ -8,7 +8,7 @@ def get_options():
     parser = argparse.ArgumentParser(description='Orient plasmid by leading region then split into first and last X kb (assumes circular plasmid!')    
     parser.add_argument('--output_dir', help='output directory', type=str)
     parser.add_argument('--fasta_file_search', help='string to find files of plasmids with glob (can contain wildcards e.g. 06_plaspan/*/_fasta/*)', type=str)
-    parser.add_argument('--leading_region_file', help='file with locations of leading region', type=str)
+	parser.add_argument('--leading_region_file', help='file with locations of leading region', type=str)
     parser.add_argument('--leading_region_size', help='leading region size (bp)', default=5000, required=False)
     return parser.parse_args()
 

@@ -130,6 +130,16 @@ These PTUs are retained for analysing the leading region:
 leading.region.PTUs = sort(names(PTU.min.sizes[PTU.min.sizes>20000]))
 cat(leading.region.PTUs, sep="\n")
 ```
+
+For convenience for other scripts, I save some files with names of plasmids within each PTU.
+
+```{r}
+for (PTU in unique(plasmid.table$PTU)){
+  cat(plasmid.table$ID[plasmid.table$PTU==PTU], sep="\n",
+      file=paste0('~/Downloads/trieste/', PTU, '_plasmids.txt'))
+}
+
+```
 ### Sliding window analysis
 
 k=6 
@@ -303,3 +313,21 @@ wilcox.test(merge_scores_counts$score_avg)
 ggsave(scores.plot, file='../results/6mer-palindromes-scores.pdf',
        height=10, width=10)
 ```
+
+Test for a particular PTU.
+
+```{r}
+
+scores_df = read.csv('../test_bokz_k5_scores.csv', header=T)
+scores_average <- scores_df %>%
+  rowwise() %>%
+  mutate(score_avg = mean(c_across(starts_with("score")))) %>%
+  ungroup() %>%
+  select(kmer, score_avg)  
+# Order by average score
+scores_average$kmer = ordered(scores_average$kmer,
+                              levels=scores_average$kmer[order(scores_average$score_avg)])
+scores.plot = ggplot(scores_average, aes(kmer, score_avg))+geom_point()+
+  coord_flip()
+```
+
