@@ -373,3 +373,105 @@ results.df = results %>% select(k, median.score, PTU) %>%
 )
 ```
 
+### All motifs testing for over-representation
+
+Go through values of k for across PTU averages. 
+
+```{r}
+# k= 4
+# 6-bp palindromes
+palindromes = read.csv('~/Downloads/trieste/k4.txt', header=F)$V1
+results.df = read.csv('../test_ptus_k4_scores.csv',header=T)
+# Add PTUs as column names
+colnames(results.df)[2:ncol(results.df)] = names(table(lr.no.duplicates.subset$PTU))
+# Normalise scores by the number of plasmids within PTU?
+n.plasmids = table(lr.no.duplicates.subset$PTU)
+results.df.norm = results.df %>%
+mutate(across(starts_with("PTU-"), ~ .x / n.plasmids[cur_column()], .names = "{.col}"))
+# Plot all palindromes
+results.df.long = results.df.norm %>%
+pivot_longer(cols = starts_with("PTU"),
+names_to = "score_type",
+values_to = "score_avg")
+results.df.norm.average = results.df.long %>% group_by(kmer) %>%
+summarise(median=median(score_avg)) %>%
+arrange(median)
+# Take the top 1% depleted
+results.df.norm.average.top.depleted = results.df.norm.average[which(results.df.norm.average$median< quantile(results.df.norm.average$median, probs = c(0.05))),] # not enough for 0.01
+results.df.norm.average.top.depleted$palindrome = ifelse(results.df.norm.average.top.depleted$kmer %in% palindromes,
+"palindrome",
+"non-palindrome")
+# Read in all RM targets
+all_rm_targets = read.csv('../data/all_rebase_targets_250131_6bp_less_deambiguated.txt', header=F, sep=' ')
+all_rm_targets_4bp =all_rm_targets$V1[all_rm_targets$V2==4]
+results.df.norm.average.top.depleted$target = ifelse(results.df.norm.average.top.depleted$kmer %in%
+all_rm_targets_4bp,
+"target", "non-target")
+table(results.df.norm.average.top.depleted$palindrome)
+table(results.df.norm.average.top.depleted$target)
+chisq.test(matrix(c(3, 10, 13, 230 ), nrow=2))
+chisq.test(matrix(c(4, 9, 99, 144 ), nrow=2))
+
+
+### And for k=5
+results.df = read.csv('../test_ptus_k5_scores.csv',header=T)
+# Add PTUs as column names
+colnames(results.df)[2:ncol(results.df)] = names(table(lr.no.duplicates.subset$PTU))
+# Normalise scores by the number of plasmids within PTU?
+n.plasmids = table(lr.no.duplicates.subset$PTU)
+results.df.norm = results.df %>%
+mutate(across(starts_with("PTU-"), ~ .x / n.plasmids[cur_column()], .names = "{.col}"))
+results.df.long = results.df.norm %>%
+pivot_longer(cols = starts_with("PTU"),
+names_to = "score_type",
+values_to = "score_avg")
+results.df.norm.average = results.df.long %>% group_by(kmer) %>%
+summarise(median=median(score_avg)) %>%
+arrange(median)
+# Take the top 1% depleted
+results.df.norm.average.top.depleted = results.df.norm.average[which(results.df.norm.average$median< quantile(results.df.norm.average$median, probs = c(0.01))),] # Top 5% since so few
+all_rm_targets_5bp =all_rm_targets$V1[all_rm_targets$V2==5]
+results.df.norm.average.top.depleted$target = ifelse(results.df.norm.average.top.depleted$kmer %in%
+all_rm_targets_5bp,
+"target", "non-target")
+table(results.df.norm.average.top.depleted$target)
+chisq.test(matrix(c(5, 6, 277, 736 ), nrow=2))
+
+
+# k =6
+# 6-bp palindromes
+palindromes = read.csv('~/Downloads/trieste/k6.txt', header=F)$V1
+results.df = read.csv('../test_ptus_k6_scores.csv',header=T)
+# Add PTUs as column names
+colnames(results.df)[2:ncol(results.df)] = names(table(lr.no.duplicates.subset$PTU))
+# Normalise scores by the number of plasmids within PTU?
+n.plasmids = table(lr.no.duplicates.subset$PTU)
+results.df.norm = results.df %>%
+mutate(across(starts_with("PTU-"), ~ .x / n.plasmids[cur_column()], .names = "{.col}"))
+# Plot all palindromes
+results.df.long = results.df.norm %>%
+pivot_longer(cols = starts_with("PTU"),
+names_to = "score_type",
+values_to = "score_avg")
+results.df.norm.average = results.df.long %>% group_by(kmer) %>%
+summarise(median=median(score_avg)) %>%
+arrange(median)
+# Take the top 1% depleted
+results.df.norm.average.top.depleted = results.df.norm.average[which(results.df.norm.average$median< quantile(results.df.norm.average$median, probs = c(0.01))),]
+results.df.norm.average.top.depleted$palindrome = ifelse(results.df.norm.average.top.depleted$kmer %in% palindromes,
+"palindrome",
+"non-palindrome")
+# Read in all RM targets
+all_rm_targets = read.csv('../data/all_rebase_targets_250131_6bp_less_deambiguated.txt', header=F, sep=' ')
+all_rm_targets_6bp =all_rm_targets$V1[all_rm_targets$V2==6]
+results.df.norm.average.top.depleted$target = ifelse(results.df.norm.average.top.depleted$kmer %in%
+all_rm_targets_6bp,
+"target", "non-target")
+table(results.df.norm.average.top.depleted$palindrome)
+table(results.df.norm.average.top.depleted$target)
+chisq.test(matrix(c(7, 34, 865-7, 4096-865-34 ), nrow=2))
+chisq.test(matrix(c(4, 37, 60, 4055 ), nrow=2))
+
+
+```
+
