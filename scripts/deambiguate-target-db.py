@@ -44,19 +44,19 @@ def possibleSequences(dna_sequence):
             possible_strings = [x for addition in additions for x in addition]
     return possible_strings
 
+if __name__ == "__main__":
+    target_db = pd.read_csv("data/RM_target_db.csv")
+    new_target_db = []
+    for i, sequence in enumerate(target_db['sequence']):
+        new_sequences = possibleSequences(sequence)
+        row = list(target_db.loc[i])
+        for s in new_sequences:
+            new_target_db.append(row+[s])
 
-target_db = pd.read_csv("data/RM_target_db.csv")
-new_target_db = []
-for i, sequence in enumerate(target_db['sequence']):
-    new_sequences = possibleSequences(sequence)
-    row = list(target_db.loc[i])
-    for s in new_sequences:
-        new_target_db.append(row+[s])
-
-new_target_db_df = pd.DataFrame(new_target_db)
-new_target_db_df.columns = ['genus', 'sequence', 'genome', 'total_genomes', 'normalized_count', 'deambiguated_sequence']
-new_target_db_df = new_target_db_df.assign(length=[len(x) for x in new_target_db_df['deambiguated_sequence']])
-new_target_db_df.to_csv("data/RM_target_db_deambiguated.csv", index=False)
+    new_target_db_df = pd.DataFrame(new_target_db)
+    new_target_db_df.columns = ['genus', 'sequence', 'genome', 'total_genomes', 'normalized_count', 'deambiguated_sequence']
+    new_target_db_df = new_target_db_df.assign(length=[len(x) for x in new_target_db_df['deambiguated_sequence']])
+    new_target_db_df.to_csv("data/RM_target_db_deambiguated.csv", index=False)
 
 
 
