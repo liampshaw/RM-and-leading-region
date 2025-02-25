@@ -104,6 +104,20 @@ results_df = data.frame(n_PTUs = c(nrow(df_4_filter),
 kable(results_df, digits = 3, format = "html")
 ```
 
+Make a plot of these results, including information on PTU pangenome size:
+
+```{r}
+ptu_for_plotting = ptu %>% pivot_longer(cols=c("n.core", "n.others"))
+ptu_for_plotting$name = ordered(ptu_for_plotting$name,
+                                levels=c("n.others", "n.core"))
+ggplot(ptu_for_plotting, aes(PTU, value, fill=name))+
+  geom_bar(stat="identity", position="stack")+
+  coord_flip()
+# Want average size of the PTU as well...
+
+
+```
+
 ## Analysis of leading region
 
 Some preliminary statistics about discarded PTUs (for main text). 

@@ -19,6 +19,9 @@ The pangenome data is available for download via Zenodo at [here](zenodo/pangeno
 We then ran `scripts/make_core_accessory_fasta_from_roary.py` to generate core (in the paper we call this 'hard shell') and accessory fastas. 
 These combined hard shell and accessory fastas for each PTU are available [here](zenodo/hard_shell_accessory_fastas). In these files the headers of the sequences give information on the genes with `seq_ID|gene_family` e.g. `>NC_019083.1_00042|group_17` 
 
+
+We calculated and plotted overall pangenome statistics with `scripts/pangenome_statistics.R`
+
 We then used [RMES](https://forgemia.inra.fr/sophie.schbath/rmes) to analyse occurrences of short motifs (k=4,5,6). The wrapper scripts to do this are available in `scripts/cluster` (for running on Oxford BMRC slurm cluster).
 The results from this analysis are available [here](zenodo/rmes_results)
 
