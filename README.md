@@ -2,6 +2,15 @@
 
 A repository of analysis related to the paper 'Conjugative leading regions and plasmid backbones are depleted in restriction-modification targets' (Shaw et al., in preparation). 
 
+## Paper analysis
+
+The main analysis presented in the paper is performed in `scripts/Paper-analysis.Rmd`. Associated python scripts used for data processing before then are in `scripts` and detailed below (dependencies: `scipy, pandas`).
+
+The main figures are as follows:
+* Figure 1: shows overall depletion in leading region. Made by combining files in `results` in Inkscape: `6mer-leading-region-vs-rest-of-plasmid-density.pdf` and `6mer-deviation-overall.pdf`, both made by the `Paper-analysis.Rmd` Rmarkdown script. 
+* Figure 2: tbc
+* Figure 3: tbc
+
 ## Detailed workflow
 
 We used a dataset of the 50 most prevalent plasmid taxonomic units (PTUs) in RefSeq200: 4,753 plasmids across 37 genera. These are available at `data/plasmid_table.csv`. The taxonomy for each genera is available at `data/genera_taxonomy.txt`
@@ -47,14 +56,4 @@ We calculate the RMES scores for the leading vs. lagging region and then using t
 python scripts/rmes-score-discrepancy-leading-lagging.py --directory ~/Downloads/trieste/leading_lagging/ --kmers ~/Downloads/trieste/k6.txt --output test_6mer_leading_lagging --k 6
 ```
 
-We then analyse the depletion in leading vs. lagging for within-range targets per PTU with `test_run_comparison_PTUs.sh`
- 
-## Paper analysis
-
-The main analysis presented in the paper is performed in `scripts/Paper-analysis.Rmd`. 
-
-The figure showing overall depletion in leading region was made by combining files in `results` in Inkscape: `6mer-leading-region-vs-rest-of-plasmid-density.pdf` and `6mer-deviation-overall.pdf`, both made by the Rmarkdown script. 
-
-# Python dependencies
-
-The python scripts depend on `scipy, pandas`. 
+We then analyse the depletion in leading vs. lagging for within-range targets per PTU with `test_run_comparison_PTUs.sh` 
