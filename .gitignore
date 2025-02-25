@@ -5,3 +5,4 @@ test*
 scripts/.Rhistory
 scripts/__pycache__/
 .Rhistory
+results/*svg
