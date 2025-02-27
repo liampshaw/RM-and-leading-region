@@ -7,9 +7,10 @@ A repository of analysis related to the paper 'Conjugative leading regions and p
 The main analysis presented in the paper is performed in `scripts/Paper-analysis.Rmd`. Associated python scripts used for data processing before then are in `scripts` and detailed below (dependencies: `scipy, pandas`).
 
 The main figures are as follows:
-* Figure 1: shows overall depletion in leading region. Made by combining files in `results` in Inkscape: `6mer-leading-region-vs-rest-of-plasmid-density.pdf` and `6mer-deviation-overall.pdf`, both made by the `Paper-analysis.Rmd` Rmarkdown script. 
-* Figure 2: tbc
+* Figure 1: shows summary of pangenomes for PTUs.
+* Figure 2: shows overall depletion in leading region. Made by combining files in `results` in Inkscape: `6mer-leading-region-vs-rest-of-plasmid-density.pdf` and `6mer-deviation-overall.pdf`, both made by the `Paper-analysis.Rmd` Rmarkdown script. 
 * Figure 3: tbc
+* Figure 4: tbc
 
 ## Detailed workflow
 
@@ -40,6 +41,15 @@ These can then be used to generate discrepancy scores for within-range targets u
 python scripts/run-rmes-score-discrepancy.py --script scripts/rmes-score-discrepancy.py --dir ~/Downloads/trieste/ --kmers per-PTU --output results/rmes_discrepancies_targets_k6.csv  --k 6
 # N.B. Wrapper script needs to be updated to pass correct arguments, given changes to rmes-score-discrepancy.py
 ```
+
+Or one can run it like this:
+```
+while read f;                              
+do
+python scripts/rmes-score-discrepancy.py --file1 ~/Downloads/trieste/one_per_family/"$f"_core_one_per_family_k4.csv --file2 ~/Downloads/trieste/one_per_family/"$f"_accessory_one_per_family_subset_k4.csv --k 4 --kmers ~/Downloads/trieste/"$f"_targets.txt
+done < test_PTUs.txt > test_one_per_family_within_range_targets_k4.csv
+```
+
 
 We identified leading regions of plasmids as outlined in the paper. Information on the leading region of PTUs is available at `data/leading_region_081123.tsv`. We then analyse this with `scripts/orient_leading_region.py`: 
 

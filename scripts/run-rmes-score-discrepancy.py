@@ -19,8 +19,8 @@ def run_comparisons(base_script, directory, kmers_file, output_file, k):
                 # Construct the command
                 command = [
                     "python", base_script,
-                    "--core", core_file,
-                    "--accessory", accessory_file,
+                    "--file1", core_file,
+                    "--file2", accessory_file,
                     "--kmers", kmers_file
                 ]
 

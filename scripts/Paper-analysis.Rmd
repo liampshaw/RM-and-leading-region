@@ -489,3 +489,17 @@ chisq.test(matrix(c(4, 37, 60, 4055 ), nrow=2))
 
 ```
 
+### All hard shell vs. accessory, one representative per gene family
+
+We subsampled to one representative per gene family and the same number of hard shell and accessory genes, whichever was smaller (PTU-Bac37 was the only one that had more hard shell than accessory genes). 
+```{r}
+core_k6 = read.csv('~/Downloads/trieste/one_per_family/all_core_k6.csv')
+accessory_k6 = read.csv('~/Downloads/trieste/one_per_family/all_accessory_k6.csv')
+merge_k6 = merge(core_k6, accessory_k6, by="word")
+merge_k6$diff = merge_k6$score.y-merge_k6$score.y
+merge_k6$palindrome = ifelse(merge_k6$word %in% palindromes,
+                             "palindrome", "other")
+ggplot(merge_k6, aes(score.x-score.y))+
+  geom_histogram()+
+  facet_wrap(~palindrome)
+```
