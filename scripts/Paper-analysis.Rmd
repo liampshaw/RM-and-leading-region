@@ -30,10 +30,6 @@ wilcox.test(df_4_filter$discrepancy_selected, df_4_filter$discrepancy_others, pa
 wilcox.test(df_6_filter$discrepancy_selected, df_6_filter$discrepancy_others, paired = TRUE)
 
 ```
-```{r}
-ggplot(df_4_filter, aes(x="k=4", wilcoxon_stat, colour=p_value<0.05))+
-  geom_point()
-```
 
 ### All RM targets (not included in main text)
 
@@ -104,19 +100,79 @@ results_df = data.frame(n_PTUs = c(nrow(df_4_filter),
 kable(results_df, digits = 3, format = "html")
 ```
 
-Make a plot of these results, including information on PTU pangenome size:
+Repeated this analysis with one gene representative per family:
+
+
 
 ```{r}
-ptu_for_plotting = ptu %>% pivot_longer(cols=c("n.core", "n.others"))
-ptu_for_plotting$name = ordered(ptu_for_plotting$name,
-                                levels=c("n.others", "n.core"))
-ggplot(ptu_for_plotting, aes(PTU, value, fill=name))+
-  geom_bar(stat="identity", position="stack")+
-  coord_flip()
-# Want average size of the PTU as well...
+# Read in results for RM targets
+df_4 = read.csv('../test_one_per_family_within_range_targets_k4.csv')
+df_5 = read.csv('../test_one_per_family_within_range_targets_k5.csv')
+df_6 = read.csv('../test_one_per_family_within_range_targets_k6.csv')
 
+# Convert discrepancies to numeric (presence of None has messed this up)
+df_4$discrepancy_selected = as.numeric(df_4$discrepancy_selected)
+df_4$discrepancy_selected[is.na(df_4$discrepancy_selected)] = 0
+df_5$discrepancy_selected = as.numeric(df_5$discrepancy_selected)
+df_5$discrepancy_selected[is.na(df_5$discrepancy_selected)] = 0
+df_6$discrepancy_selected = as.numeric(df_6$discrepancy_selected)
+df_6$discrepancy_selected[is.na(df_6$discrepancy_selected)] = 0
+
+# Median of selected k-mers
+df = t(data.frame(c(median(df_4[which(df_4$n_selected_kmers!=0),"discrepancy_selected"]), 
+        wilcox.test(df_4[which(df_4$n_selected_kmers!=0),"discrepancy_selected"])$statistic,
+        wilcox.test(df_4[which(df_4$n_selected_kmers!=0),"discrepancy_selected"])$p.value),
+        c(median(df_5[which(df_5$n_selected_kmers!=0),"discrepancy_selected"]), 
+        wilcox.test(df_5[which(df_5$n_selected_kmers!=0),"discrepancy_selected"])$statistic,
+        wilcox.test(df_5[which(df_5$n_selected_kmers!=0),"discrepancy_selected"])$p.value),
+        c(median(df_6[which(df_6$n_selected_kmers!=0),"discrepancy_selected"]), 
+        wilcox.test(df_6[which(df_6$n_selected_kmers!=0),"discrepancy_selected"])$statistic,
+        wilcox.test(df_6[which(df_6$n_selected_kmers!=0),"discrepancy_selected"])$p.value)))
+colnames(df) = c("median", "statistic", "p.value")
+print(df)
 
 ```
+
+
+### All hard shell vs. accessory, one representative per gene family
+
+We subsampled to one representative per gene family and the same number of hard shell and accessory genes, whichever was smaller (PTU-Bac37 was the only one that had more hard shell than accessory genes). 
+```{r}
+palindromes_k4 = tolower(read.csv('~/Downloads/trieste/k4.txt', header=F)$V1)
+palindromes_k6 = tolower(read.csv('~/Downloads/trieste/k6.txt', header=F)$V1)
+
+core_k6 = read.csv('~/Downloads/trieste/one_per_family/all_core_1745k_k6.csv')
+accessory_k6 = read.csv('~/Downloads/trieste/one_per_family/all_accessory_1745k_k6.csv')
+merge_k6 = merge(core_k6, accessory_k6, by="word")
+merge_k6$score.diff = merge_k6$score.x-merge_k6$score.y
+merge_k6$count.diff = merge_k6$count.x-merge_k6$count.y
+
+merge_k6$palindrome = ifelse(merge_k6$word %in% palindromes_k6,
+                             "palindrome", "other")
+median(merge_k6[which(merge_k6$palindrome=="palindrome"),"score.diff"])
+wilcox.test(merge_k6[which(merge_k6$palindrome=="palindrome"),"score.diff"])
+sum(merge_k6$count.x[which(merge_k6$palindrome=="palindrome")])/sum(merge_k6$count.x) * 1000
+sum(merge_k6$count.y[which(merge_k6$palindrome=="palindrome")])/sum(merge_k6$count.y) * 1000
+
+# And for k=4
+
+core_k4 = read.csv('~/Downloads/trieste/one_per_family/all_core_1745k_k4.csv')
+accessory_k4 = read.csv('~/Downloads/trieste/one_per_family/all_accessory_1745k_k4.csv')
+merge_k4 = merge(core_k4, accessory_k4, by="word")
+merge_k4$score.diff = merge_k4$score.x-merge_k4$score.y
+merge_k4$count.diff = merge_k4$count.x-merge_k4$count.y
+
+merge_k4$palindrome = ifelse(merge_k4$word %in% palindromes_k4,
+                             "palindrome", "other")
+median(merge_k4[which(merge_k4$palindrome=="palindrome"),"score.diff"])
+wilcox.test(merge_k4[which(merge_k4$palindrome=="palindrome"),"score.diff"])
+
+# Sum palindromes
+sum(merge_k4$count.x[which(merge_k4$palindrome=="palindrome")])/sum(merge_k4$count.x) * 1000
+sum(merge_k4$count.y[which(merge_k4$palindrome=="palindrome")])/sum(merge_k4$count.y) * 1000
+
+```
+
 
 ## Analysis of leading region
 
@@ -206,6 +262,41 @@ ggsave(p.lines.expectation+scale_x_continuous(labels = function(x) x / 1000, lim
        width=10, height=6)
 
 ```
+```{r}
+# Sliding window for GC content
+p.lines.GC = ggplot(d.reduced.median.plot, aes(x, GC/5000 * 100))+
+  geom_hline(yintercept = 0, linetype='dashed')+
+  theme_bw()+
+  geom_path(aes(group=PTU, alpha=normalized_n))+
+  facet_wrap(~PTU, scales="free_x", nrow=3)+
+  ylab("Palindrome depletion per kb (5kb sliding window)")+
+  labs(alpha="% of plasmids within PTU")+
+  theme(panel.grid=element_blank())+  
+  scale_x_continuous(labels = function(x) x / 1000) +
+  xlab("Position on plasmid (kb)")+
+  theme(legend.position = c(0.8, 0.2))
+ggsave(p.lines.GC, file='../results/GC-content.pdf',
+       width=10, height=6)
+
+
+# And for palindrome density (not expected - actual values)
+p.lines.density = ggplot(d.reduced.median.plot, aes(x, median.original*1000))+
+  geom_hline(yintercept = 0, linetype='dashed')+
+  theme_bw()+
+  geom_path(aes(group=PTU, alpha=normalized_n))+
+  facet_wrap(~PTU, scales="free_x", nrow=3)+
+  ylab("Palindrome density per kb (5kb sliding window)")+
+  labs(alpha="% of plasmids within PTU")+
+  theme(panel.grid=element_blank())+  
+  scale_x_continuous(labels = function(x) x / 1000) +
+  xlab("Position on plasmid (kb)")+
+  theme(legend.position = c(0.8, 0.2))
+ggsave(p.lines.density, file='../results/6mer-palindrome-density.pdf',
+       width=10, height=6)
+
+```
+
+
 
 ### Compare leading region to rest of plasmid
 
@@ -392,14 +483,15 @@ results.df = results %>% select(k, median.score, PTU) %>%
 Go through values of k for across PTU averages. 
 
 ```{r}
+# Normalise
+PTU.counts = table(plasmid.table$PTU)
+n.plasmids = PTU.counts[leading.region.PTUs]
 # k= 4
 # 6-bp palindromes
 palindromes = read.csv('~/Downloads/trieste/k4.txt', header=F)$V1
 results.df = read.csv('../test_ptus_k4_scores.csv',header=T)
 # Add PTUs as column names
-colnames(results.df)[2:ncol(results.df)] = names(table(lr.no.duplicates.subset$PTU))
-# Normalise scores by the number of plasmids within PTU?
-n.plasmids = table(lr.no.duplicates.subset$PTU)
+colnames(results.df)[2:ncol(results.df)] = leading.region.PTUs
 results.df.norm = results.df %>%
 mutate(across(starts_with("PTU-"), ~ .x / n.plasmids[cur_column()], .names = "{.col}"))
 # Plot all palindromes
@@ -416,23 +508,23 @@ results.df.norm.average.top.depleted$palindrome = ifelse(results.df.norm.average
 "palindrome",
 "non-palindrome")
 # Read in all RM targets
-all_rm_targets = read.csv('../data/all_rebase_targets_250131_6bp_less_deambiguated.txt', header=F, sep=' ')
-all_rm_targets_4bp =all_rm_targets$V1[all_rm_targets$V2==4]
+all_rm_targets = read.csv('../data/rebase_all_4_6bp_targets_250131.csv', header=T)
+all_rm_targets_4bp =all_rm_targets$target[all_rm_targets$length==4]
 results.df.norm.average.top.depleted$target = ifelse(results.df.norm.average.top.depleted$kmer %in%
 all_rm_targets_4bp,
 "target", "non-target")
 table(results.df.norm.average.top.depleted$palindrome)
 table(results.df.norm.average.top.depleted$target)
-chisq.test(matrix(c(3, 10, 13, 230 ), nrow=2))
-chisq.test(matrix(c(4, 9, 99, 144 ), nrow=2))
+# palindromes
+chisq.test(matrix(c(2, 11, 13, 230 ), nrow=2))
+# Targets
+chisq.test(matrix(c(3, 10, 100, 143 ), nrow=2))
 
 
 ### And for k=5
 results.df = read.csv('../test_ptus_k5_scores.csv',header=T)
 # Add PTUs as column names
-colnames(results.df)[2:ncol(results.df)] = names(table(lr.no.duplicates.subset$PTU))
-# Normalise scores by the number of plasmids within PTU?
-n.plasmids = table(lr.no.duplicates.subset$PTU)
+colnames(results.df)[2:ncol(results.df)] = leading.region.PTUs
 results.df.norm = results.df %>%
 mutate(across(starts_with("PTU-"), ~ .x / n.plasmids[cur_column()], .names = "{.col}"))
 results.df.long = results.df.norm %>%
@@ -443,13 +535,13 @@ results.df.norm.average = results.df.long %>% group_by(kmer) %>%
 summarise(median=median(score_avg)) %>%
 arrange(median)
 # Take the top 1% depleted
-results.df.norm.average.top.depleted = results.df.norm.average[which(results.df.norm.average$median< quantile(results.df.norm.average$median, probs = c(0.01))),] # Top 5% since so few
-all_rm_targets_5bp =all_rm_targets$V1[all_rm_targets$V2==5]
+results.df.norm.average.top.depleted = results.df.norm.average[which(results.df.norm.average$median< quantile(results.df.norm.average$median, probs = c(0.01))),] 
+all_rm_targets_5bp =all_rm_targets$target[all_rm_targets$length==5]
 results.df.norm.average.top.depleted$target = ifelse(results.df.norm.average.top.depleted$kmer %in%
 all_rm_targets_5bp,
 "target", "non-target")
 table(results.df.norm.average.top.depleted$target)
-chisq.test(matrix(c(5, 6, 277, 736 ), nrow=2))
+chisq.test(matrix(c(5, 11, 277, 731 ), nrow=2))
 
 
 # k =6
@@ -457,16 +549,15 @@ chisq.test(matrix(c(5, 6, 277, 736 ), nrow=2))
 palindromes = read.csv('~/Downloads/trieste/k6.txt', header=F)$V1
 results.df = read.csv('../test_ptus_k6_scores.csv',header=T)
 # Add PTUs as column names
-colnames(results.df)[2:ncol(results.df)] = names(table(lr.no.duplicates.subset$PTU))
-# Normalise scores by the number of plasmids within PTU?
-n.plasmids = table(lr.no.duplicates.subset$PTU)
+colnames(results.df)[2:ncol(results.df)] = leading.region.PTUs
 results.df.norm = results.df %>%
 mutate(across(starts_with("PTU-"), ~ .x / n.plasmids[cur_column()], .names = "{.col}"))
-# Plot all palindromes
+# Switch to long format
 results.df.long = results.df.norm %>%
 pivot_longer(cols = starts_with("PTU"),
 names_to = "score_type",
 values_to = "score_avg")
+
 results.df.norm.average = results.df.long %>% group_by(kmer) %>%
 summarise(median=median(score_avg)) %>%
 arrange(median)
@@ -476,8 +567,8 @@ results.df.norm.average.top.depleted$palindrome = ifelse(results.df.norm.average
 "palindrome",
 "non-palindrome")
 # Read in all RM targets
-all_rm_targets = read.csv('../data/all_rebase_targets_250131_6bp_less_deambiguated.txt', header=F, sep=' ')
-all_rm_targets_6bp =all_rm_targets$V1[all_rm_targets$V2==6]
+all_rm_targets = read.csv('../data/rebase_all_4_6bp_targets_250131.csv', header=F, sep=' ')
+all_rm_targets_6bp =all_rm_targets$target[all_rm_targets$length==6]
 results.df.norm.average.top.depleted$target = ifelse(results.df.norm.average.top.depleted$kmer %in%
 all_rm_targets_6bp,
 "target", "non-target")
@@ -489,17 +580,4 @@ chisq.test(matrix(c(4, 37, 60, 4055 ), nrow=2))
 
 ```
 
-### All hard shell vs. accessory, one representative per gene family
 
-We subsampled to one representative per gene family and the same number of hard shell and accessory genes, whichever was smaller (PTU-Bac37 was the only one that had more hard shell than accessory genes). 
-```{r}
-core_k6 = read.csv('~/Downloads/trieste/one_per_family/all_core_k6.csv')
-accessory_k6 = read.csv('~/Downloads/trieste/one_per_family/all_accessory_k6.csv')
-merge_k6 = merge(core_k6, accessory_k6, by="word")
-merge_k6$diff = merge_k6$score.y-merge_k6$score.y
-merge_k6$palindrome = ifelse(merge_k6$word %in% palindromes,
-                             "palindrome", "other")
-ggplot(merge_k6, aes(score.x-score.y))+
-  geom_histogram()+
-  facet_wrap(~palindrome)
-```
