@@ -6,6 +6,42 @@ library(xtable)
 library(dplyr)
 library(tidyr)
 ```
+
+Some preliminary statistics about discarded PTUs (for main text). 
+
+```{r}
+lr = read.csv('../data/leading_region_081123.tsv', sep='\t')
+plasmid.table = read.csv('../data/plasmid_table.tsv', sep='\t')
+retained.PTUs.lr = read.csv('../data/leading-region-PTUs.txt', header=F)$V1
+lr.identified.PTU.names = sort(unique(lr$PTU))
+# Minimum sizes
+PTU.min.sizes = sort(sapply(lr.identified.PTU.names, function(x) 
+  min(plasmid.table[plasmid.table$PTU==x, "Size"])))
+```
+
+We discard those where the minimum size is <20kb: E1, E3, E9, E10, E14, E76. We check the maximum size per PTU:
+
+```{r}
+sort(sapply(paste0("PTU-E", c("1", "3", "9", "10", "14", "76")), function(x) 
+  max(plasmid.table[plasmid.table$PTU==x, "Size"])))
+```
+
+These PTUs are retained for analysing the leading region:
+
+```{r}
+leading.region.PTUs = sort(names(PTU.min.sizes[PTU.min.sizes>20000]))
+cat(leading.region.PTUs, sep="\n")
+```
+
+For convenience for other scripts, I save some files with names of plasmids within each PTU.
+
+```{r}
+for (PTU in unique(plasmid.table$PTU)){
+  cat(plasmid.table$ID[plasmid.table$PTU==PTU], sep="\n",
+      file=paste0('~/Downloads/trieste/', PTU, '_plasmids.txt'))
+}
+
+```
 ### Figure 1
 
 Figure 1. Summary of the 36 plasmid taxonomic units (PTUs) analysed in this paper. 
@@ -47,6 +83,8 @@ ggplot(ptu[which(ptu$median.genes>20),], aes(PTU, median.genes, ymin=min.genes, 
 dev.off()
 
 ```
+
+
 
 ## Compare hard shell genes vs. accessory
 
@@ -218,41 +256,7 @@ sum(merge_k4$count.y[which(merge_k4$palindrome=="palindrome")])/sum(merge_k4$cou
 
 ## Analysis of leading region
 
-Some preliminary statistics about discarded PTUs (for main text). 
 
-```{r}
-lr = read.csv('../data/leading_region_081123.tsv', sep='\t')
-plasmid.table = read.csv('../data/plasmid_table.tsv', sep='\t')
-retained.PTUs.lr = read.csv('../data/leading-region-PTUs.txt', header=F)$V1
-lr.identified.PTU.names = sort(unique(lr$PTU))
-# Minimum sizes
-PTU.min.sizes = sort(sapply(lr.identified.PTU.names, function(x) 
-  min(plasmid.table[plasmid.table$PTU==x, "Size"])))
-```
-
-We discard those where the minimum size is <20kb: E1, E3, E9, E10, E14, E76. We check the maximum size per PTU:
-
-```{r}
-sort(sapply(paste0("PTU-E", c("1", "3", "9", "10", "14", "76")), function(x) 
-  max(plasmid.table[plasmid.table$PTU==x, "Size"])))
-```
-
-These PTUs are retained for analysing the leading region:
-
-```{r}
-leading.region.PTUs = sort(names(PTU.min.sizes[PTU.min.sizes>20000]))
-cat(leading.region.PTUs, sep="\n")
-```
-
-For convenience for other scripts, I save some files with names of plasmids within each PTU.
-
-```{r}
-for (PTU in unique(plasmid.table$PTU)){
-  cat(plasmid.table$ID[plasmid.table$PTU==PTU], sep="\n",
-      file=paste0('~/Downloads/trieste/', PTU, '_plasmids.txt'))
-}
-
-```
 ### Sliding window analysis
 
 k=6 
@@ -317,7 +321,7 @@ p.lines.GC = ggplot(d.reduced.median.plot, aes(x, GC/5000 * 100))+
   scale_x_continuous(labels = function(x) x / 1000) +
   xlab("Position on plasmid (kb)")+
   theme(legend.position = c(0.8, 0.2))
-ggsave(p.lines.GC, file='../results/GC-content.pdf',
+ggsave(p.lines.GC, file='../results/Figure-S1-GC-content.pdf',
        width=10, height=6)
 
 
@@ -489,7 +493,7 @@ p.overall.average.GC = ggplot(overall.median.GC, aes(x, y/5000 * 100))+
   theme(axis.text=element_text(colour="black"))
 p.overall.average.GC
 # Save
-ggsave(p.overall.average.GC, file='../results/GC-mean-overall.pdf', 
+ggsave(p.overall.average.GC, file='../results/Figure-S1-GC-mean-overall.pdf', 
        width=5, height=2)
 ```
 
