@@ -6,15 +6,57 @@ library(xtable)
 library(dplyr)
 library(tidyr)
 ```
+### Figure 1
+
+Figure 1. Summary of the 36 plasmid taxonomic units (PTUs) analysed in this paper. 
+
+```{r}
+# Get average size of PTU
+ptu = read.csv('../data/PTU-pangenome-stats.csv')
+for (each_ptu in ptu$PTU){
+  gene_pa_file <- list.files(paste0("/Users/Liam/Downloads/06_plaspan/", each_ptu), 
+                        pattern = "gene_presence_absence.Rtab$", full.names = TRUE, recursive = TRUE)
+  gene_counts = read.csv(gene_pa_file, sep='\t', row.names = 1)
+  ptu$median.genes[which(ptu$PTU==each_ptu)] = median(colSums(gene_counts))
+  ptu$max.genes[which(ptu$PTU==each_ptu)] = max(colSums(gene_counts))
+  ptu$min.genes[which(ptu$PTU==each_ptu)] = min(colSums(gene_counts))
+}
+
+# Plot these
+ptu_for_plotting = ptu %>% pivot_longer(cols=c("n.core", "n.others"))
+
+ptu = ptu[order(ptu$median.genes),]
+ptu$PTU = ordered(ptu$PTU, 
+                  levels=rev(ptu$PTU))
+ptu$leading.region = ifelse(ptu$PTU %in% leading.region.PTUs,
+                            "yes", "no")
+pdf('../results/Figure-1-ptu-summary-pangenome-plot.pdf', width=9, height=5)
+ggplot(ptu[which(ptu$median.genes>20),], aes(PTU, median.genes, ymin=min.genes, ymax=max.genes,
+                                             fill=leading.region))+
+  geom_bar(aes(y=n.core), stat="identity")+
+  geom_errorbar()+
+  geom_point(shape=21)+
+  theme_bw()+
+  xlab("")+
+  ylab("Number of genes")+
+  labs(fill="Leading region analysed")+
+  coord_flip()+
+  scale_color_brewer(palette="Set2")+
+  scale_fill_brewer(palette="Set2")+
+  theme(axis.text=element_text(colour="black"))
+dev.off()
+
+```
 
 ## Compare hard shell genes vs. accessory
+
 
 
 ### Short palindromes (k=4, 6)
 
 ```{r}
 # Pangenome statistics for PTUs
-ptu = read.csv('../data/PTU-pangenome-stats.csv')
+#ptu = read.csv('../data/PTU-pangenome-stats.csv')
 
 # Read in RMES comparisons
 df_4 = read.csv('~/Downloads/trieste/test_k4.csv')
@@ -255,7 +297,7 @@ p.lines.expectation = ggplot(d.reduced.median.plot, aes(x, median*1000))+
   scale_x_continuous(labels = function(x) x / 1000) +
   xlab("Position on plasmid (kb)")+
   theme(legend.position = c(0.8, 0.2))
-ggsave(p.lines.expectation, file='../results/6mer-deviation-expectation.pdf',
+ggsave(p.lines.expectation, file='../results/Figure-S2-6mer-deviation-expectation.pdf',
        width=10, height=6)
 # Plot only first 50kb
 ggsave(p.lines.expectation+scale_x_continuous(labels = function(x) x / 1000, limits=c(0,50000)), file='../results/6mer-deviation-expectation-0-50-kb.pdf',
@@ -291,7 +333,7 @@ p.lines.density = ggplot(d.reduced.median.plot, aes(x, median.original*1000))+
   scale_x_continuous(labels = function(x) x / 1000) +
   xlab("Position on plasmid (kb)")+
   theme(legend.position = c(0.8, 0.2))
-ggsave(p.lines.density, file='../results/6mer-palindrome-density.pdf',
+ggsave(p.lines.density, file='../results/Figure-S3-6mer-palindrome-density.pdf',
        width=10, height=6)
 
 ```
@@ -512,7 +554,7 @@ scores.plot = ggplot(merge_scores_counts, aes(score_avg, kmer))+
   ylab("")+
   xlab("Mean depletion score\n(leading vs. lagging, 10kb)")
 wilcox.test(merge_scores_counts$score_avg)
-ggsave(scores.plot, file='../results/6mer-palindromes-scores.pdf',
+ggsave(scores.plot, file='../results/Figure-S4-6mer-palindromes-scores.pdf',
        height=10, width=10)
 ```
 
