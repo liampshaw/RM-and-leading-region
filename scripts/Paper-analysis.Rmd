@@ -257,7 +257,7 @@ p.lines.expectation = ggplot(d.reduced.median.plot, aes(x, median*1000))+
   theme(legend.position = c(0.8, 0.2))
 ggsave(p.lines.expectation, file='../results/6mer-deviation-expectation.pdf',
        width=10, height=6)
-# Plot only first 25kb
+# Plot only first 50kb
 ggsave(p.lines.expectation+scale_x_continuous(labels = function(x) x / 1000, limits=c(0,50000)), file='../results/6mer-deviation-expectation-0-50-kb.pdf',
        width=10, height=6)
 
@@ -298,7 +298,30 @@ ggsave(p.lines.density, file='../results/6mer-palindrome-density.pdf',
 
 
 
-### Compare leading region to rest of plasmid
+### Figure 2
+
+Figure 2. RM target depletion in the leading region of conjugative plasmids. 
+
+```{r}
+overall.median = d.reduced %>% filter(x<50000) %>%
+  group_by(x) %>%
+  summarise(y=median(diff_density),
+            n=length(diff_density))
+p.overall.average = ggplot(overall.median, aes(x, y*1000))+
+  geom_line()+
+  scale_y_continuous(breaks=seq(-10, 0, 2), limits = c(-9, 0))+
+  theme_bw()+
+  theme(panel.grid = element_blank())+
+  geom_hline(yintercept = 0, linetype='dashed')+
+  ylab("Palindrome depletion (per kb)")+
+    scale_x_continuous(labels = function(x) x / 1000) +
+  xlab("Position on plasmid (kb)")+
+  theme(axis.text=element_text(colour="black"))
+p.overall.average
+# Save
+ggsave(p.overall.average, file='../results/Figure-2-6mer-deviation-overall.pdf', 
+       width=3, height=3)
+```
 
 ```{r}
 # Start from d.reduced, which contains per-plasmid results with 5000bp sliding window and step size of 500bp
@@ -329,11 +352,13 @@ p.leading.region.diff.density
 # Based on this, remove two outliers
 p.leading.region.diff.density = p.leading.region.diff.density+
   scale_y_continuous(breaks=seq(-8, 4, 2), limits=c(-8,5))
-ggsave(p.leading.region.diff.density, file='../results/6mer-deviation-leading-region-vs-rest-of-plasmid-density.pdf',
+ggsave(p.leading.region.diff.density, file='../results/Figure-2-6mer-deviation-leading-region-vs-rest-of-plasmid-density.pdf',
        width=5.5, height=6)
 ```
 
-Now we want to correlate the GC content difference of the first 5kb of the plasmid with the difference in palindrome density
+### Figure 3
+
+Figure 3. GC-rich leading regions are more depleted in 6-bp palindromes. Values are calculated for the 5-10kb section of the leading region relative to the mean average value over the whole length of the plasmid. Spearman’s correlations are given as inset values. The relationship between relative GC content and palindrome depletion was still significant in a linear model controlling for PTU (depletion ~ GC*PTU). 
 
 ```{r}
 diff.PTU.averages = diff.leading.region.average %>% group_by(PTU) %>%
@@ -391,7 +416,7 @@ p.gc.correlation.ptu =  ggplot(d.GC.palindrome.PTU, aes(diff.GC, density.depleti
   guides(fill=FALSE)+
     xlab("Relative GC content (%)")+
   ylab("Relative palindrome depletion (per kb)")
-pdf('../results/GC-correlation-depletion.pdf', width=8, height=4)
+pdf('../results/Figure-3-GC-correlation-depletion.pdf', width=8, height=4)
 cowplot::plot_grid(p.gc.correlation+ggtitle("(a)"), p.gc.correlation.ptu+ggtitle("(b)"))
 dev.off()
 cor.test(d.GC.palindrome$diff.GC, d.GC.palindrome$density.depletion, method="spearman")
@@ -403,28 +428,7 @@ summary(lm(density.depletion ~ diff.GC*PTU, data=d.GC.palindrome))
 
 ### Averaging over all plasmids
 
-Similar to Samuel et al.'s display of anti-defence gene density, average over all conjugative plasmids.
 
-```{r}
-overall.median = d.reduced %>% filter(x<50000) %>%
-  group_by(x) %>%
-  summarise(y=median(diff_density),
-            n=length(diff_density))
-p.overall.average = ggplot(overall.median, aes(x, y*1000))+
-  geom_line()+
-  scale_y_continuous(breaks=seq(-10, 0, 2), limits = c(-9, 0))+
-  theme_bw()+
-  theme(panel.grid = element_blank())+
-  geom_hline(yintercept = 0, linetype='dashed')+
-  ylab("Palindrome depletion (per kb)")+
-    scale_x_continuous(labels = function(x) x / 1000) +
-  xlab("Position on plasmid (kb)")+
-  theme(axis.text=element_text(colour="black"))
-p.overall.average
-# Save
-ggsave(p.overall.average, file='../results/6mer-deviation-overall.pdf', 
-       width=3, height=3)
-```
 Also do this for GC content.
 
 ```{r}
@@ -512,8 +516,9 @@ ggsave(scores.plot, file='../results/6mer-palindromes-scores.pdf',
        height=10, width=10)
 ```
 
-Test for a particular PTU.
+### Figure 4
 
+Figure 4: Average depletion of within-range RM targets in the leading vs. lagging regions for conjugative PTUs. 
 ```{r}
 
 results = NULL
@@ -559,7 +564,7 @@ p.depletion.targets = ggplot(results, aes(median.score, as.factor(PTU)))+
         axis.title.x=element_text(size=24),
         axis.text.x=element_text(size=18))+
   theme(axis.text.y=element_text(hjust=0))
-ggsave(p.depletion.targets, file='../results/figure-depletion-within-range-targets.pdf',
+ggsave(p.depletion.targets, file='../results/Figure-4-figure-depletion-within-range-targets.pdf',
        width=10, height=6)
 
 # Is there a correlation between k=5 and k=6 results?
