@@ -1,11 +1,14 @@
 # Restriction-modification targets and the leading region of plasmids
 
+**Note: repository currently undergoing streamlining**
+
 A repository of analysis related to the paper:
 
-**The leading region of many conjugative plasmids is depleted in restriction-modification targets** 
+**The leading region of many conjugative plasmids is depleted in restriction-modification targets**  
+
 Liam P. Shaw, Arancha Peñil Celis, Manuel Ares Arroyo, Lijuan Luo, Tatiana Dimitriu, Fernando de la Cruz 
 
-**Repository currently undergoing streamlining**
+
 
 ## Paper analysis
 
