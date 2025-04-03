@@ -269,7 +269,7 @@ p.lines.GC = ggplot(d.reduced.median.plot, aes(x, GC/5000 * 100))+
   theme_bw()+
   geom_path(aes(group=PTU, alpha=normalized_n))+
   facet_wrap(~PTU, scales="free_x", nrow=3)+
-  ylab("Palindrome depletion per kb (5kb sliding window)")+
+  ylab("GC content (5kb sliding window)")+
   labs(alpha="% of plasmids within PTU")+
   theme(panel.grid=element_blank())+  
   scale_x_continuous(labels = function(x) x / 1000) +
@@ -306,7 +306,8 @@ ggsave(p.lines.density, file='../results/6mer-palindrome-density.pdf',
 diff.leading.region.average = d.reduced %>% 
   group_by(plasmid, PTU) %>%
   mutate(diff.count=palindrome_count[x=="0"]-mean(palindrome_count),
-         diff.density=diff_density[x=="0"]-mean(diff_density)) %>%
+         diff.density=diff_density[x=="0"]-mean(diff_density),
+         diff.GC=(GC_n[x=="0"]-mean(GC_n))/5000 * 100) %>%
   filter(x=="0")
 
 # Order the PTUs by mean values of depletion for better visual display
@@ -331,6 +332,75 @@ p.leading.region.diff.density = p.leading.region.diff.density+
 ggsave(p.leading.region.diff.density, file='../results/6mer-deviation-leading-region-vs-rest-of-plasmid-density.pdf',
        width=5.5, height=6)
 ```
+
+Now we want to correlate the GC content difference of the first 5kb of the plasmid with the difference in palindrome density
+
+```{r}
+diff.PTU.averages = diff.leading.region.average %>% group_by(PTU) %>%
+  summarise(mean.GC=mean(diff.GC),
+            GC=mean(GC_n[x=="0"]/5000 * 100),
+            mean.palindrome=mean(palindrome_density),
+            mean.palindrome.diff=mean(diff.density) * 1000,
+            n=length(diff.GC))
+ggplot(diff.PTU.averages, aes(mean.GC, mean.palindrome.diff))+
+  geom_hline(yintercept = 0, linetype='dashed')+
+  ggrepel::geom_text_repel(aes(label=PTU))+
+    geom_point(aes(size=n), shape=21, colour="black", fill="grey")+
+  theme_bw()+
+  theme(panel.grid = element_blank())+
+  xlab("GC difference between first 5kb\nand plasmid average (%)")+
+  ylab("Additional palindrome depletion in leading region (per kb)")
+
+
+# Calculate actual GC and actual palindrome density
+# for a given x-value. I think 5kb is appropriate for leading region to 
+# get rid of start effects. 
+gc_data_frame = function(position_on_plasmid){
+  d.reduced %>% 
+  group_by(plasmid, PTU) %>%
+  mutate(GC=GC_n[x==position_on_plasmid]/5000 * 100,
+         diff.GC=(GC_n[x==position_on_plasmid]-mean(GC_n))/5000 * 100,
+         density=palindrome_density[x==position_on_plasmid]*1000,
+         density.depletion=diff_density[x==position_on_plasmid]*1000) %>%
+  filter(x==position_on_plasmid)
+}
+d.GC.palindrome = gc_data_frame(5000)
+ggplot(d.GC.palindrome, aes(diff.GC, density.depletion))+
+  geom_point()
+
+d.GC.palindrome.PTU = d.GC.palindrome %>% group_by(PTU) %>%
+  summarise(GC=mean(GC),
+            diff.GC=mean(diff.GC),
+            density=mean(density),
+            density.depletion=mean(density.depletion),
+            n=length(window_size))
+ggplot(d.GC.palindrome, aes(diff.GC, density.depletion, fill=PTU))+
+  geom_point(shape=21, colour="black")+
+  facet_wrap(~PTU)
+p.gc.correlation = ggplot(d.GC.palindrome, aes(diff.GC, density.depletion))+
+  geom_point()+
+  theme_bw()+
+  xlab("Relative GC content at 5-10kb (%)")+
+  ylab("Relative palindrome depletion at 5-10kb (per kb)")+
+    xlim(c(-15, 10))+
+  ylim(-13, 14)
+p.gc.correlation.ptu =  ggplot(d.GC.palindrome.PTU, aes(diff.GC, density.depletion))+
+  geom_point(aes(size=n, fill=PTU), shape=21, colour="black")+
+  theme_bw()+
+  ggrepel::geom_text_repel(aes(label=PTU), size=2, min.segment.length = 0)+
+  guides(fill=FALSE)+
+    xlab("Relative GC content (%)")+
+  ylab("Relative palindrome depletion (per kb)")
+pdf('../results/GC-correlation-depletion.pdf', width=8, height=4)
+cowplot::plot_grid(p.gc.correlation+ggtitle("(a)"), p.gc.correlation.ptu+ggtitle("(b)"))
+dev.off()
+cor.test(d.GC.palindrome$diff.GC, d.GC.palindrome$density.depletion, method="spearman")
+cor.test(d.GC.palindrome.PTU$diff.GC, d.GC.palindrome.PTU$density.depletion)
+
+summary(lm(density.depletion ~ diff.GC*PTU, data=d.GC.palindrome))
+
+```
+
 ### Averaging over all plasmids
 
 Similar to Samuel et al.'s display of anti-defence gene density, average over all conjugative plasmids.
@@ -355,6 +425,28 @@ p.overall.average
 ggsave(p.overall.average, file='../results/6mer-deviation-overall.pdf', 
        width=3, height=3)
 ```
+Also do this for GC content.
+
+```{r}
+overall.median.GC = d.reduced %>% filter(x<50000) %>%
+  group_by(x) %>%
+  summarise(y=mean(GC_n),
+            n=length(GC_n))
+p.overall.average.GC = ggplot(overall.median.GC, aes(x, y/5000 * 100))+
+  geom_line()+
+  theme_bw()+
+  theme(panel.grid = element_blank())+
+  geom_hline(yintercept = 50, linetype='dashed')+
+  ylab("GC content (per kb)")+
+    scale_x_continuous(labels = function(x) x / 1000) +
+  xlab("Position on plasmid (kb)")+
+  theme(axis.text=element_text(colour="black"))
+p.overall.average.GC
+# Save
+ggsave(p.overall.average.GC, file='../results/GC-mean-overall.pdf', 
+       width=5, height=2)
+```
+
 
 ```{r}
 lagging.df = read.csv('~/Downloads/trieste/leading_lagging/NZ_LT994833.1_lagging_10000_k6.csv', header=T)
@@ -579,5 +671,3 @@ chisq.test(matrix(c(4, 37, 60, 4055 ), nrow=2))
 
 
 ```
-
-
