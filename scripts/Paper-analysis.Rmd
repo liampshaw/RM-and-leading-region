@@ -458,7 +458,7 @@ wilcox.test(df_6_filter$discrepancy_selected, df_6_filter$discrepancy_others, pa
 
 ```
 
-### All RM targets (not included in main text)
+### All RM targets 
 
 ```{r }
 df_4 = read.csv('~/Downloads/trieste/test_4mer_targets.csv')
