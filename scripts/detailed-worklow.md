@@ -1,5 +1,7 @@
 ## Script details
 
+**Warning** This details the python scripts used to generate files that are used in the main `Paper-analysis.Rmd`. It is not comprehensive in detail nor intended for use on other computers.
+
 We used a dataset of the 50 most prevalent plasmid taxonomic units (PTUs) in RefSeq200: 4,753 plasmids across 37 genera. These are available at `data/plasmid_table.csv`. The taxonomy for each genera is available at `data/genera_taxonomy.txt`
 Within each PTU, we ran Prokka on each plasmid followed by Roary with a core threshold of 80% to generate pangenomes using scripts available [here](https://github.com/Adalijuanluo/Plasmid_pan). 
 The pangenome data is available for download via Zenodo. A summary of the pangenome stats is available at `data/PTU-pangenome-stats.csv` (Note that `PTU-B/O/K/Z` is renamed `PTU-BOKZ` and `PTU-L_M` becomes `PTU-LM` from this point forwards.) 
@@ -30,7 +32,7 @@ Or one can run it like this:
 while read f;                              
 do
 python scripts/rmes-score-discrepancy.py --file1 ~/Downloads/trieste/one_per_family/"$f"_core_one_per_family_k4.csv --file2 ~/Downloads/trieste/one_per_family/"$f"_accessory_one_per_family_subset_k4.csv --k 4 --kmers ~/Downloads/trieste/"$f"_targets.txt
-done < test_PTUs.txt > test_one_per_family_within_range_targets_k4.csv
+done < test_PTUs.txt > results/one_per_family_within_range_targets_k4.csv
 ```
 
 
@@ -43,7 +45,7 @@ python scripts/orient_leading_region.py --output results/output_window5000_step5
 We split the leading and lagging region (10kb) with 
 
 ```
- python scripts/split_leading_and_lagging.py --output_dir test_regions --fasta_file_search "/Users/Liam/Downloads/06_plaspan/*/_fasta/*" --leading_region_file data/leading_region_081123.tsv --leading_region_size 10000
+python scripts/split_leading_and_lagging.py --output_dir test_regions --fasta_file_search "/Users/Liam/Downloads/06_plaspan/*/_fasta/*" --leading_region_file data/leading_region_081123.tsv --leading_region_size 10000
 ```
 
 We calculate the RMES scores for the leading vs. lagging region and then using those results calculate the difference with 
