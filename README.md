@@ -1,12 +1,10 @@
 # Restriction-modification targets and the leading region of plasmids
 
-**Note: repository currently undergoing streamlining**
-
 A repository of analysis related to the paper:
 
 **The leading region of many conjugative plasmids is depleted in restriction-modification targets**  
-Liam P. Shaw, Arancha Peñil Celis, Manuel Ares Arroyo, Lijuan Luo, Tatiana Dimitriu, Fernando de la Cruz 
-biorxiv: https://www.biorxiv.org/content/10.1101/2025.04.03.647016v1  
+Liam P. Shaw, Arancha Peñil Celis, Manuel Ares Arroyo, Lijuan Luo, Tatiana Dimitriu, Fernando de la Cruz  
+doi: [10.1101/2025.04.03.647016](https://doi.org/10.1101/2025.04.03.647016) 
 
 Associated datasets can be downloaded at Zenodo: [10.5281/zenodo.15235227](https://doi.org/10.5281/zenodo.15235227)
 
