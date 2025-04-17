@@ -1,5 +1,27 @@
+---
+title: "Shaw et al. (2025) Supplementary analysis"
+author: "Liam Shaw"
+output:
+  html_document:
+    toc: true
+---
 
-```{r}
+### Preliminaries 
+
+This script contains analysis and figure generation for Shaw et al. (2025), 'The leading region of many conjugative plasmids is depleted in restriction-modification targets'. For more details, see the associated paper. The code matches the order of appearance of the figures/analysis in the paper and is separated into sections based on the figures. Figure S5 and S6 are not included in this code.
+
+It is intended to be run from inside the `scripts` directory of this repository. Results are saved to to `results` within the repository. 
+
+**Note** This relies on large downloaded files and is not intended to work out-of-the-box. For example, Roary gene presence/absence tables on my computer are stored in `/Users/Liam/Downloads/06_plaspan/`. 
+
+## Dataset 
+
+### Statistics 
+
+First, we load libraries.
+
+```{r, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(warning = FALSE)
 library(ggplot2)
 library(knitr)
 library(xtable)
@@ -7,7 +29,7 @@ library(dplyr)
 library(tidyr)
 ```
 
-Some preliminary statistics about discarded PTUs (for main text). 
+We calculate some preliminary statistics about the PTUs from our dataset of 50 PTUs that we analyse (see main text). 
 
 ```{r}
 lr = read.csv('../data/leading_region_081123.tsv', sep='\t')
@@ -19,7 +41,7 @@ PTU.min.sizes = sort(sapply(lr.identified.PTU.names, function(x)
   min(plasmid.table[plasmid.table$PTU==x, "Size"])))
 ```
 
-We discard those where the minimum size is <20kb: E1, E3, E9, E10, E14, E76. We check the maximum size per PTU:
+We discard those where the minimum size of plasmids in the PTU is <20kb: E1, E3, E9, E10, E14, E76. We check the maximum size per PTU:
 
 ```{r}
 sort(sapply(paste0("PTU-E", c("1", "3", "9", "10", "14", "76")), function(x) 
@@ -33,7 +55,7 @@ leading.region.PTUs = sort(names(PTU.min.sizes[PTU.min.sizes>20000]))
 cat(leading.region.PTUs, sep="\n")
 ```
 
-For convenience for other scripts, I save some files with names of plasmids within each PTU.
+For convenience for other scripts, we save some files with names of plasmids within each PTU.
 
 ```{r}
 for (PTU in unique(plasmid.table$PTU)){
@@ -42,12 +64,12 @@ for (PTU in unique(plasmid.table$PTU)){
 }
 
 ```
+
 ### Figure 1
 
 Figure 1. Summary of the 36 plasmid taxonomic units (PTUs) analysed in this paper. 
 
-```{r}
-# Get average size of PTU
+```{r, message=FALSE}
 ptu = read.csv('../data/PTU-pangenome-stats.csv')
 for (each_ptu in ptu$PTU){
   gene_pa_file <- list.files(paste0("/Users/Liam/Downloads/06_plaspan/", each_ptu), 
@@ -58,16 +80,17 @@ for (each_ptu in ptu$PTU){
   ptu$min.genes[which(ptu$PTU==each_ptu)] = min(colSums(gene_counts))
 }
 
-# Plot these
+# Set up for plotting
 ptu_for_plotting = ptu %>% pivot_longer(cols=c("n.core", "n.others"))
-
+# Order by median size (no. of genes)
 ptu = ptu[order(ptu$median.genes),]
 ptu$PTU = ordered(ptu$PTU, 
                   levels=rev(ptu$PTU))
 ptu$leading.region = ifelse(ptu$PTU %in% leading.region.PTUs,
                             "yes", "no")
+# Make the figure
 pdf('../results/Figure-1-ptu-summary-pangenome-plot.pdf', width=9, height=5)
-ggplot(ptu[which(ptu$median.genes>20),], aes(PTU, median.genes, ymin=min.genes, ymax=max.genes,
+p.figure1 = ggplot(ptu[which(ptu$median.genes>20),], aes(PTU, median.genes, ymin=min.genes, ymax=max.genes,
                                              fill=leading.region))+
   geom_bar(aes(y=n.core), stat="identity")+
   geom_errorbar()+
@@ -80,15 +103,339 @@ ggplot(ptu[which(ptu$median.genes>20),], aes(PTU, median.genes, ymin=min.genes, 
   scale_color_brewer(palette="Set2")+
   scale_fill_brewer(palette="Set2")+
   theme(axis.text=element_text(colour="black"))
+p.figure1
 dev.off()
+p.figure1
+```
 
+## Sliding window analysis
+
+### Figures S1-S3
+
+We plot results of sliding window analysis over the conjugative plasmids for k=6. This produces Figure 
+
+```{r, message=FALSE}
+# Theoretical expectation for 6-bp palindrome density
+theoreticalPalindromeExpectation = function(p){# p is GC content
+  return ((p**2 - p + 1/2)**3)
+}
+d = read.csv('../test_output_window5000_step500.csv', header=F, stringsAsFactors = F)
+colnames(d) = c("PTU", "plasmid", "x", "window_size", "palindrome_count", "palindrome_density", "GC_n")
+
+d.reduced = d[which(d$PTU %in% leading.region.PTUs), ]
+
+d.reduced$expected_density = theoreticalPalindromeExpectation(d.reduced$GC_n/d.reduced$window_size)
+
+d.reduced$diff_density = d.reduced$palindrome_density-d.reduced$expected_density
+
+# One line per plasmid
+d.reduced.median = d.reduced %>% group_by(PTU, x) %>% 
+  summarise(median=median(diff_density),
+            n=length(diff_density), 
+            median.original=median(palindrome_density),
+            GC=median(GC_n))
+# Maximum counts
+d.reduced.median.plot = d.reduced.median %>% 
+  group_by(PTU) %>%
+  mutate(max_n = max(n, na.rm = TRUE),  # Calculate max 'n' for each 'PTU'
+         normalized_n = n / max_n * 100) %>%  # Normalize 'n' by this max value
+  ungroup() %>%  # Remove the grouping
+  select(-max_n)  # Optionally remove the max_n column if not needed
+
+# Sliding window for GC content, S1
+p.figureS1 = ggplot(d.reduced.median.plot, aes(x, GC/5000 * 100))+
+  geom_hline(yintercept = 0, linetype='dashed')+
+  theme_bw()+
+  geom_path(aes(group=PTU, alpha=normalized_n))+
+  facet_wrap(~PTU, scales="free_x", nrow=3)+
+  ylab("GC content (5kb sliding window)")+
+  labs(alpha="% of plasmids within PTU")+
+  theme(panel.grid=element_blank())+  
+  scale_x_continuous(labels = function(x) x / 1000) +
+  xlab("Position on plasmid (kb)")+
+  theme(legend.position = c(0.8, 0.2))
+ggsave(p.figureS1, file='../results/Figure-S1-GC-content.pdf',
+       width=10, height=6)
+p.figureS1
+
+overall.median.GC = d.reduced %>% filter(x<50000) %>%
+  group_by(x) %>%
+  summarise(y=mean(GC_n),
+            n=length(GC_n))
+p.figureS1.overall = ggplot(overall.median.GC, aes(x, y/5000 * 100))+
+  geom_line()+
+  theme_bw()+
+  theme(panel.grid = element_blank())+
+  geom_hline(yintercept = 50, linetype='dashed')+
+  ylab("GC content (per kb)")+
+    scale_x_continuous(labels = function(x) x / 1000) +
+  xlab("Position on plasmid (kb)")+
+  theme(axis.text=element_text(colour="black"))
+p.figureS1.overall
+# Save
+ggsave(p.figureS1.overall, file='../results/Figure-S1-GC-mean-overall.pdf', 
+       width=5, height=2)
+
+# Plot the distribution, S2
+p.figureS2 = ggplot(d.reduced.median.plot, aes(x, median*1000))+
+  geom_hline(yintercept = 0, linetype='dashed')+
+  theme_bw()+
+  geom_path(aes(group=PTU, alpha=normalized_n))+
+  facet_wrap(~PTU, scales="free_x", nrow=3)+
+  ylab("Palindrome depletion per kb (5kb sliding window)")+
+  labs(alpha="% of plasmids within PTU")+
+  theme(panel.grid=element_blank())+  
+  scale_x_continuous(labels = function(x) x / 1000) +
+  xlab("Position on plasmid (kb)")+
+  theme(legend.position = c(0.8, 0.2))
+ggsave(p.figureS2, file='../results/Figure-S2-6mer-deviation-expectation.pdf',
+       width=10, height=6)
+p.figureS2
+```
+
+```{r}
+# And for palindrome density (not expected - actual values)
+p.figureS3 = ggplot(d.reduced.median.plot, aes(x, median.original*1000))+
+  geom_hline(yintercept = 0, linetype='dashed')+
+  theme_bw()+
+  geom_path(aes(group=PTU, alpha=normalized_n))+
+  facet_wrap(~PTU, scales="free_x", nrow=3)+
+  ylab("Palindrome density per kb (5kb sliding window)")+
+  labs(alpha="% of plasmids within PTU")+
+  theme(panel.grid=element_blank())+  
+  scale_x_continuous(labels = function(x) x / 1000) +
+  xlab("Position on plasmid (kb)")+
+  theme(legend.position = c(0.8, 0.2))
+ggsave(p.figureS3, file='../results/Figure-S3-6mer-palindrome-density.pdf',
+       width=10, height=6)
+p.figureS3
+```
+
+### Figure 2
+
+Figure 2. RM target depletion in the leading region of conjugative plasmids. 
+
+```{r}
+overall.median = d.reduced %>% filter(x<50000) %>%
+  group_by(x) %>%
+  summarise(y=median(diff_density),
+            n=length(diff_density))
+p.overall.average = ggplot(overall.median, aes(x, y*1000))+
+  geom_line()+
+  scale_y_continuous(breaks=seq(-10, 0, 2), limits = c(-9, 0))+
+  theme_bw()+
+  theme(panel.grid = element_blank())+
+  geom_hline(yintercept = 0, linetype='dashed')+
+  ylab("Palindrome depletion (per kb)")+
+    scale_x_continuous(labels = function(x) x / 1000) +
+  xlab("Position on plasmid (kb)")+
+  theme(axis.text=element_text(colour="black"))
+p.overall.average
+# Save
+ggsave(p.overall.average, file='../results/Figure-2-6mer-deviation-overall.pdf', 
+       width=3, height=3)
+```
+
+This is the main panel of the figure.
+
+```{r}
+# Start from d.reduced, which contains per-plasmid results with 5000bp sliding window and step size of 500bp
+# Compare depletion in first 5kb with average for the rest of the plasmid
+diff.leading.region.average = d.reduced %>% 
+  group_by(plasmid, PTU) %>%
+  mutate(diff.count=palindrome_count[x=="0"]-mean(palindrome_count),
+         diff.density=diff_density[x=="0"]-mean(diff_density),
+         diff.GC=(GC_n[x=="0"]-mean(GC_n))/5000 * 100) %>%
+  filter(x=="0")
+
+# Order the PTUs by mean values of depletion for better visual display
+mean.values = diff.leading.region.average %>% group_by(PTU) %>%
+  summarise(mean=mean(diff.density)*1000)
+diff.leading.region.average$PTU = ordered(gsub("PTU-", "", diff.leading.region.average$PTU),
+                                          levels=gsub("PTU-", "", mean.values$PTU[order(mean.values$mean)]))
+p.leading.region.diff.density = ggplot(diff.leading.region.average, aes(as.factor(PTU), diff.density*1000))+ # depletion per-kb rather than per-bp
+  ggbeeswarm::geom_quasirandom(alpha=0.8)+
+  theme_bw()+
+  theme(panel.grid = element_blank())+
+  geom_hline(yintercept = 0)+
+  xlab("")+
+  theme(axis.text=element_text(colour="black", size=18))+
+  ylab("Palindrome depletion in leading region (per kb)")+
+  theme(axis.text.x=element_text(angle=45, hjust=1))+
+  ylab("")
+p.leading.region.diff.density
+# Based on this, remove two outliers
+p.leading.region.diff.density = p.leading.region.diff.density+
+  scale_y_continuous(breaks=seq(-8, 4, 2), limits=c(-8,5))
+ggsave(p.leading.region.diff.density, file='../results/Figure-2-6mer-deviation-leading-region-vs-rest-of-plasmid-density.pdf',
+       width=5.5, height=6)
+```
+
+This is the inset panel which is added into the panel above to create the figure in the paper.
+
+
+### Figure 3
+
+Figure 3. GC-rich leading regions are more depleted in 6-bp palindromes. Values are calculated for the 5-10kb section of the leading region relative to the mean average value over the whole length of the plasmid. Spearman’s correlations are given as inset values. The relationship between relative GC content and palindrome depletion was still significant in a linear model controlling for PTU (depletion ~ GC*PTU). 
+
+```{r}
+diff.PTU.averages = diff.leading.region.average %>% group_by(PTU) %>%
+  summarise(mean.GC=mean(diff.GC),
+            GC=mean(GC_n[x=="0"]/5000 * 100),
+            mean.palindrome=mean(palindrome_density),
+            mean.palindrome.diff=mean(diff.density) * 1000,
+            n=length(diff.GC))
+
+# Calculate actual GC and actual palindrome density
+# for a given x-value. 5kb is appropriate for leading region to 
+# get the strongest signal (see Figure 2). 
+gc_data_frame = function(position_on_plasmid){
+  d.reduced %>% 
+  group_by(plasmid, PTU) %>%
+  mutate(GC=GC_n[x==position_on_plasmid]/5000 * 100,
+         diff.GC=(GC_n[x==position_on_plasmid]-mean(GC_n))/5000 * 100,
+         density=palindrome_density[x==position_on_plasmid]*1000,
+         density.depletion=diff_density[x==position_on_plasmid]*1000) %>%
+  filter(x==position_on_plasmid)
+}
+d.GC.palindrome = gc_data_frame(5000)
+
+d.GC.palindrome.PTU = d.GC.palindrome %>% group_by(PTU) %>%
+  summarise(GC=mean(GC),
+            diff.GC=mean(diff.GC),
+            density=mean(density),
+            density.depletion=mean(density.depletion),
+            n=length(window_size))
+
+p.figure3a = ggplot(d.GC.palindrome, aes(diff.GC, density.depletion))+
+  geom_point()+
+  theme_bw()+
+  xlab("Relative GC content at 5-10kb (%)")+
+  ylab("Relative palindrome depletion at 5-10kb (per kb)")+
+    xlim(c(-15, 10))+
+  ylim(-13, 14)
+p.figure3b =  ggplot(d.GC.palindrome.PTU, aes(diff.GC, density.depletion))+
+  geom_point(aes(size=n, fill=PTU), shape=21, colour="black")+
+  theme_bw()+
+  ggrepel::geom_text_repel(aes(label=PTU), size=2, min.segment.length = 0)+
+  guides(fill=FALSE)+
+    xlab("Relative GC content (%)")+
+  ylab("Relative palindrome depletion (per kb)")
+pdf('../results/Figure-3-GC-correlation-depletion.pdf', width=8, height=4)
+p.figure3 = cowplot::plot_grid(p.figure3a+ggtitle("(a)"), p.figure3b+ggtitle("(b)"))
+p.figure3
+dev.off()
+p.figure3
+# Calculate correlations
+cor.test(d.GC.palindrome$diff.GC, d.GC.palindrome$density.depletion, method="spearman")
+cor.test(d.GC.palindrome.PTU$diff.GC, d.GC.palindrome.PTU$density.depletion)
+```
+
+## Depletion of specific targets
+
+### Figure 4
+
+Figure 4: Average depletion of within-range RM targets in the leading vs. lagging regions for conjugative PTUs. 
+
+```{r}
+
+results = NULL
+for (PTU in leading.region.PTUs){
+  for (k in c(5,6)){
+    scores_df = read.csv(paste0('../test_target_leading_lagging/', PTU, '_k', k, '_scores.csv'), header=T)
+    n_targets = nrow(scores_df)
+    scores_average <- scores_df %>%
+  rowwise() %>%
+  mutate(score_avg = mean(c_across(starts_with("score")))) %>%
+  ungroup() %>%
+  select(kmer, score_avg)
+    counts_df = read.csv(paste0('../test_target_leading_lagging/', PTU, '_k', k, '_counts.csv'), header=T)
+    counts_average <- counts_df %>%
+  rowwise() %>%
+  mutate(count_avg = mean(c_across(starts_with("count")))) %>%
+  ungroup() %>%
+  select(kmer, count_avg)
+    results = rbind(results, c(PTU, k, n_targets, median(scores_average$score_avg), median(counts_average$count_avg)))
+  }
+}
+
+results = data.frame(results)
+colnames(results) = c("PTU", "k", "n.targets", "median.score", "median.count")
+results$median.score= as.numeric(results$median.score)
+results$median.count = as.numeric(results$median.count)
+
+# Order by median score for k=6
+order.k.6.scores = results[which(results$k==6), "PTU"][order(results[which(results$k==6), "median.score"])]
+results$PTU = ordered(results$PTU,
+                      levels=rev(order.k.6.scores))
+
+p.figure4 = ggplot(results, aes(median.score, as.factor(PTU)))+
+  geom_vline(xintercept = 0, size=1)+
+  geom_bar(stat="identity", position="dodge")+
+  facet_wrap(~k, scales="free_x")+
+  ylab("")+
+  xlab("Median depletion score of within-range RM targets\n(leading vs. lagging, 10kb)")+
+   theme_bw()+
+  theme(panel.grid = element_blank())+
+  theme(axis.text=element_text(colour="black", size=12),
+        axis.title.x=element_text(size=24),
+        axis.text.x=element_text(size=18))+
+  theme(axis.text.y=element_text(hjust=0))
+ggsave(p.figure4, file='../results/Figure-4-figure-depletion-within-range-targets.pdf',
+       width=10, height=6)
 ```
 
 
+### Figure S4
 
-## Compare hard shell genes vs. accessory
+```{r}
+scores_df = read.csv('../test_6mer_leading_lagging_scores.csv', header=T)
+scores_average <- scores_df %>%
+  rowwise() %>%
+  mutate(score_avg = mean(c_across(starts_with("score")))) %>%
+  ungroup() %>%
+  select(kmer, score_avg)  
+# Order by average score
+scores_average$kmer = ordered(scores_average$kmer,
+                              levels=scores_average$kmer[order(scores_average$score_avg)])
+scores.plot = ggplot(scores_average, aes(kmer, score_avg))+geom_point()+
+  coord_flip()
 
+# Same for counts
+counts_df = read.csv('../test_6mer_leading_lagging_counts.csv', header=T)
+counts_average <- counts_df %>%
+  rowwise() %>%
+  mutate(count_avg = mean(c_across(starts_with("count")))) %>%
+  ungroup() %>%
+  select(kmer, count_avg)  
 
+# Merge together
+merge_scores_counts = merge(counts_average, scores_average, by="kmer")
+# average score and average count are well-correlated
+ggplot(merge_scores_counts, aes(count_avg, score_avg))+geom_point()
+
+# Order by average score
+merge_scores_counts$kmer = ordered(merge_scores_counts$kmer,
+                              levels=scores_average$kmer[order(scores_average$score_avg)])
+p.figureS4 = ggplot(merge_scores_counts, aes(score_avg, kmer))+
+    geom_vline(xintercept = 0)+
+  geom_bar(stat="identity")+
+  geom_vline(xintercept = median(merge_scores_counts$score_avg), linetype='dashed', colour='red')+
+  theme_bw()+
+  theme(axis.text=element_text(colour="black", size=12),
+        axis.title.x=element_text(size=24),
+        axis.text.x=element_text(size=18))+
+  theme(axis.text.y=element_text(hjust=0))+
+  ylab("")+
+  xlab("Mean depletion score\n(leading vs. lagging, 10kb)")
+wilcox.test(merge_scores_counts$score_avg)
+ggsave(p.figureS4, file='../results/Figure-S4-6mer-palindromes-scores.pdf',
+       height=10, width=10)
+```
+
+## Other analysis
+
+For more details on the analysis below, see Supplementary Text 1.
 
 ### Short palindromes (k=4, 6)
 
@@ -180,9 +527,7 @@ results_df = data.frame(n_PTUs = c(nrow(df_4_filter),
 kable(results_df, digits = 3, format = "html")
 ```
 
-Repeated this analysis with one gene representative per family:
-
-
+We repeat this analysis with one gene representative per family:
 
 ```{r}
 # Read in results for RM targets
@@ -210,13 +555,10 @@ df = t(data.frame(c(median(df_4[which(df_4$n_selected_kmers!=0),"discrepancy_sel
         wilcox.test(df_6[which(df_6$n_selected_kmers!=0),"discrepancy_selected"])$p.value)))
 colnames(df) = c("median", "statistic", "p.value")
 print(df)
-
 ```
 
+We then subsample to one representative per gene family and the same number of hard shell and accessory genes, whichever is smaller (PTU-Bac37 is the only PTU that had more hard shell than accessory genes). 
 
-### All hard shell vs. accessory, one representative per gene family
-
-We subsampled to one representative per gene family and the same number of hard shell and accessory genes, whichever was smaller (PTU-Bac37 was the only one that had more hard shell than accessory genes). 
 ```{r}
 palindromes_k4 = tolower(read.csv('~/Downloads/trieste/k4.txt', header=F)$V1)
 palindromes_k6 = tolower(read.csv('~/Downloads/trieste/k6.txt', header=F)$V1)
@@ -253,373 +595,6 @@ sum(merge_k4$count.y[which(merge_k4$palindrome=="palindrome")])/sum(merge_k4$cou
 
 ```
 
-
-## Analysis of leading region
-
-
-### Sliding window analysis
-
-k=6 
-```{r}
-# Theoretical expectation for 6-bp palindrome density
-theoreticalPalindromeExpectation = function(p){# p is GC content
-  return ((p**2 - p + 1/2)**3)
-}
-d = read.csv('../test_output_window5000_step500.csv', header=F, stringsAsFactors = F)
-colnames(d) = c("PTU", "plasmid", "x", "window_size", "palindrome_count", "palindrome_density", "GC_n")
-
-d.reduced = d[which(d$PTU %in% leading.region.PTUs), ]
-
-d.reduced$expected_density = theoreticalPalindromeExpectation(d.reduced$GC_n/d.reduced$window_size)
-
-d.reduced$diff_density = d.reduced$palindrome_density-d.reduced$expected_density
-
-
-# One line per plasmid
-d.reduced.median = d.reduced %>% group_by(PTU, x) %>% 
-  summarise(median=median(diff_density),
-            n=length(diff_density), 
-            median.original=median(palindrome_density),
-            GC=median(GC_n))
-
-# Maximum counts
-d.reduced.median.plot = d.reduced.median %>% 
-  group_by(PTU) %>%
-  mutate(max_n = max(n, na.rm = TRUE),  # Calculate max 'n' for each 'PTU'
-         normalized_n = n / max_n * 100) %>%  # Normalize 'n' by this max value
-  ungroup() %>%  # Remove the grouping
-  select(-max_n)  # Optionally remove the max_n column if not needed
-# Plot the distribution
-p.lines.expectation = ggplot(d.reduced.median.plot, aes(x, median*1000))+
-  geom_hline(yintercept = 0, linetype='dashed')+
-  theme_bw()+
-  geom_path(aes(group=PTU, alpha=normalized_n))+
-  facet_wrap(~PTU, scales="free_x", nrow=3)+
-  ylab("Palindrome depletion per kb (5kb sliding window)")+
-  labs(alpha="% of plasmids within PTU")+
-  theme(panel.grid=element_blank())+  
-  scale_x_continuous(labels = function(x) x / 1000) +
-  xlab("Position on plasmid (kb)")+
-  theme(legend.position = c(0.8, 0.2))
-ggsave(p.lines.expectation, file='../results/Figure-S2-6mer-deviation-expectation.pdf',
-       width=10, height=6)
-# Plot only first 50kb
-ggsave(p.lines.expectation+scale_x_continuous(labels = function(x) x / 1000, limits=c(0,50000)), file='../results/6mer-deviation-expectation-0-50-kb.pdf',
-       width=10, height=6)
-
-```
-```{r}
-# Sliding window for GC content
-p.lines.GC = ggplot(d.reduced.median.plot, aes(x, GC/5000 * 100))+
-  geom_hline(yintercept = 0, linetype='dashed')+
-  theme_bw()+
-  geom_path(aes(group=PTU, alpha=normalized_n))+
-  facet_wrap(~PTU, scales="free_x", nrow=3)+
-  ylab("GC content (5kb sliding window)")+
-  labs(alpha="% of plasmids within PTU")+
-  theme(panel.grid=element_blank())+  
-  scale_x_continuous(labels = function(x) x / 1000) +
-  xlab("Position on plasmid (kb)")+
-  theme(legend.position = c(0.8, 0.2))
-ggsave(p.lines.GC, file='../results/Figure-S1-GC-content.pdf',
-       width=10, height=6)
-
-
-# And for palindrome density (not expected - actual values)
-p.lines.density = ggplot(d.reduced.median.plot, aes(x, median.original*1000))+
-  geom_hline(yintercept = 0, linetype='dashed')+
-  theme_bw()+
-  geom_path(aes(group=PTU, alpha=normalized_n))+
-  facet_wrap(~PTU, scales="free_x", nrow=3)+
-  ylab("Palindrome density per kb (5kb sliding window)")+
-  labs(alpha="% of plasmids within PTU")+
-  theme(panel.grid=element_blank())+  
-  scale_x_continuous(labels = function(x) x / 1000) +
-  xlab("Position on plasmid (kb)")+
-  theme(legend.position = c(0.8, 0.2))
-ggsave(p.lines.density, file='../results/Figure-S3-6mer-palindrome-density.pdf',
-       width=10, height=6)
-
-```
-
-
-
-### Figure 2
-
-Figure 2. RM target depletion in the leading region of conjugative plasmids. 
-
-```{r}
-overall.median = d.reduced %>% filter(x<50000) %>%
-  group_by(x) %>%
-  summarise(y=median(diff_density),
-            n=length(diff_density))
-p.overall.average = ggplot(overall.median, aes(x, y*1000))+
-  geom_line()+
-  scale_y_continuous(breaks=seq(-10, 0, 2), limits = c(-9, 0))+
-  theme_bw()+
-  theme(panel.grid = element_blank())+
-  geom_hline(yintercept = 0, linetype='dashed')+
-  ylab("Palindrome depletion (per kb)")+
-    scale_x_continuous(labels = function(x) x / 1000) +
-  xlab("Position on plasmid (kb)")+
-  theme(axis.text=element_text(colour="black"))
-p.overall.average
-# Save
-ggsave(p.overall.average, file='../results/Figure-2-6mer-deviation-overall.pdf', 
-       width=3, height=3)
-```
-
-```{r}
-# Start from d.reduced, which contains per-plasmid results with 5000bp sliding window and step size of 500bp
-# Compare depletion in first 5kb with average for the rest of the plasmid
-diff.leading.region.average = d.reduced %>% 
-  group_by(plasmid, PTU) %>%
-  mutate(diff.count=palindrome_count[x=="0"]-mean(palindrome_count),
-         diff.density=diff_density[x=="0"]-mean(diff_density),
-         diff.GC=(GC_n[x=="0"]-mean(GC_n))/5000 * 100) %>%
-  filter(x=="0")
-
-# Order the PTUs by mean values of depletion for better visual display
-mean.values = diff.leading.region.average %>% group_by(PTU) %>%
-  summarise(mean=mean(diff.density)*1000)
-diff.leading.region.average$PTU = ordered(gsub("PTU-", "", diff.leading.region.average$PTU),
-                                          levels=gsub("PTU-", "", mean.values$PTU[order(mean.values$mean)]))
-p.leading.region.diff.density = ggplot(diff.leading.region.average, aes(as.factor(PTU), diff.density*1000))+ # depletion per-kb rather than per-bp
-  ggbeeswarm::geom_quasirandom(alpha=0.8)+
-  theme_bw()+
-  theme(panel.grid = element_blank())+
-  geom_hline(yintercept = 0)+
-  xlab("")+
-  theme(axis.text=element_text(colour="black", size=18))+
-  ylab("Palindrome depletion in leading region (per kb)")+
-  theme(axis.text.x=element_text(angle=45, hjust=1))+
-  ylab("")
-p.leading.region.diff.density
-# Based on this, remove two outliers
-p.leading.region.diff.density = p.leading.region.diff.density+
-  scale_y_continuous(breaks=seq(-8, 4, 2), limits=c(-8,5))
-ggsave(p.leading.region.diff.density, file='../results/Figure-2-6mer-deviation-leading-region-vs-rest-of-plasmid-density.pdf',
-       width=5.5, height=6)
-```
-
-### Figure 3
-
-Figure 3. GC-rich leading regions are more depleted in 6-bp palindromes. Values are calculated for the 5-10kb section of the leading region relative to the mean average value over the whole length of the plasmid. Spearman’s correlations are given as inset values. The relationship between relative GC content and palindrome depletion was still significant in a linear model controlling for PTU (depletion ~ GC*PTU). 
-
-```{r}
-diff.PTU.averages = diff.leading.region.average %>% group_by(PTU) %>%
-  summarise(mean.GC=mean(diff.GC),
-            GC=mean(GC_n[x=="0"]/5000 * 100),
-            mean.palindrome=mean(palindrome_density),
-            mean.palindrome.diff=mean(diff.density) * 1000,
-            n=length(diff.GC))
-ggplot(diff.PTU.averages, aes(mean.GC, mean.palindrome.diff))+
-  geom_hline(yintercept = 0, linetype='dashed')+
-  ggrepel::geom_text_repel(aes(label=PTU))+
-    geom_point(aes(size=n), shape=21, colour="black", fill="grey")+
-  theme_bw()+
-  theme(panel.grid = element_blank())+
-  xlab("GC difference between first 5kb\nand plasmid average (%)")+
-  ylab("Additional palindrome depletion in leading region (per kb)")
-
-
-# Calculate actual GC and actual palindrome density
-# for a given x-value. I think 5kb is appropriate for leading region to 
-# get rid of start effects. 
-gc_data_frame = function(position_on_plasmid){
-  d.reduced %>% 
-  group_by(plasmid, PTU) %>%
-  mutate(GC=GC_n[x==position_on_plasmid]/5000 * 100,
-         diff.GC=(GC_n[x==position_on_plasmid]-mean(GC_n))/5000 * 100,
-         density=palindrome_density[x==position_on_plasmid]*1000,
-         density.depletion=diff_density[x==position_on_plasmid]*1000) %>%
-  filter(x==position_on_plasmid)
-}
-d.GC.palindrome = gc_data_frame(5000)
-ggplot(d.GC.palindrome, aes(diff.GC, density.depletion))+
-  geom_point()
-
-d.GC.palindrome.PTU = d.GC.palindrome %>% group_by(PTU) %>%
-  summarise(GC=mean(GC),
-            diff.GC=mean(diff.GC),
-            density=mean(density),
-            density.depletion=mean(density.depletion),
-            n=length(window_size))
-ggplot(d.GC.palindrome, aes(diff.GC, density.depletion, fill=PTU))+
-  geom_point(shape=21, colour="black")+
-  facet_wrap(~PTU)
-p.gc.correlation = ggplot(d.GC.palindrome, aes(diff.GC, density.depletion))+
-  geom_point()+
-  theme_bw()+
-  xlab("Relative GC content at 5-10kb (%)")+
-  ylab("Relative palindrome depletion at 5-10kb (per kb)")+
-    xlim(c(-15, 10))+
-  ylim(-13, 14)
-p.gc.correlation.ptu =  ggplot(d.GC.palindrome.PTU, aes(diff.GC, density.depletion))+
-  geom_point(aes(size=n, fill=PTU), shape=21, colour="black")+
-  theme_bw()+
-  ggrepel::geom_text_repel(aes(label=PTU), size=2, min.segment.length = 0)+
-  guides(fill=FALSE)+
-    xlab("Relative GC content (%)")+
-  ylab("Relative palindrome depletion (per kb)")
-pdf('../results/Figure-3-GC-correlation-depletion.pdf', width=8, height=4)
-cowplot::plot_grid(p.gc.correlation+ggtitle("(a)"), p.gc.correlation.ptu+ggtitle("(b)"))
-dev.off()
-cor.test(d.GC.palindrome$diff.GC, d.GC.palindrome$density.depletion, method="spearman")
-cor.test(d.GC.palindrome.PTU$diff.GC, d.GC.palindrome.PTU$density.depletion)
-
-summary(lm(density.depletion ~ diff.GC*PTU, data=d.GC.palindrome))
-
-```
-
-### Averaging over all plasmids
-
-
-Also do this for GC content.
-
-```{r}
-overall.median.GC = d.reduced %>% filter(x<50000) %>%
-  group_by(x) %>%
-  summarise(y=mean(GC_n),
-            n=length(GC_n))
-p.overall.average.GC = ggplot(overall.median.GC, aes(x, y/5000 * 100))+
-  geom_line()+
-  theme_bw()+
-  theme(panel.grid = element_blank())+
-  geom_hline(yintercept = 50, linetype='dashed')+
-  ylab("GC content (per kb)")+
-    scale_x_continuous(labels = function(x) x / 1000) +
-  xlab("Position on plasmid (kb)")+
-  theme(axis.text=element_text(colour="black"))
-p.overall.average.GC
-# Save
-ggsave(p.overall.average.GC, file='../results/Figure-S1-GC-mean-overall.pdf', 
-       width=5, height=2)
-```
-
-
-```{r}
-lagging.df = read.csv('~/Downloads/trieste/leading_lagging/NZ_LT994833.1_lagging_10000_k6.csv', header=T)
-leading.df = read.csv('~/Downloads/trieste/leading_lagging/NZ_LT994833.1_leading_10000_k6.csv', header=T)
-merged.df = merge(leading.df, lagging.df, by="word")
-palindromes = tolower(read.csv('~/Downloads/trieste/k6.txt', header=F)$V1)
-ggplot(merged.df[which(merged.df$word %in% palindromes),], aes(score.x, score.y))+
-  geom_point()
-merged.df.palindromes = merged.df[which(merged.df$word %in% palindromes),]
-table(merged.df.palindromes$score.x<merged.df.palindromes$score.y)
-kmer_targets = tolower(read.csv('~/Downloads/trieste/PTU-LM_targets.txt', header=F)$V1)
-ggplot(merged.df[which(merged.df$word %in% kmer_targets),], aes(score.x, score.y))+
-  geom_point()
-merged.df.targets = merged.df[which(merged.df$word %in% kmer_targets),]
-table(merged.df.targets$score.x<merged.df.targets$score.y)
-
-```
-
-### Palindromes in leading vs. lagging
-
-```{r}
-scores_df = read.csv('../test_6mer_leading_lagging_scores.csv', header=T)
-scores_average <- scores_df %>%
-  rowwise() %>%
-  mutate(score_avg = mean(c_across(starts_with("score")))) %>%
-  ungroup() %>%
-  select(kmer, score_avg)  
-# Order by average score
-scores_average$kmer = ordered(scores_average$kmer,
-                              levels=scores_average$kmer[order(scores_average$score_avg)])
-scores.plot = ggplot(scores_average, aes(kmer, score_avg))+geom_point()+
-  coord_flip()
-
-# Same for counts
-counts_df = read.csv('../test_6mer_leading_lagging_counts.csv', header=T)
-counts_average <- counts_df %>%
-  rowwise() %>%
-  mutate(count_avg = mean(c_across(starts_with("count")))) %>%
-  ungroup() %>%
-  select(kmer, count_avg)  
-
-# Merge together
-merge_scores_counts = merge(counts_average, scores_average, by="kmer")
-# average score and average count are well-correlated
-ggplot(merge_scores_counts, aes(count_avg, score_avg))+geom_point()
-
-# Order by average score
-merge_scores_counts$kmer = ordered(merge_scores_counts$kmer,
-                              levels=scores_average$kmer[order(scores_average$score_avg)])
-scores.plot = ggplot(merge_scores_counts, aes(score_avg, kmer))+
-    geom_vline(xintercept = 0)+
-  geom_bar(stat="identity")+
-  geom_vline(xintercept = median(merge_scores_counts$score_avg), linetype='dashed', colour='red')+
-  theme_bw()+
-  theme(axis.text=element_text(colour="black", size=12),
-        axis.title.x=element_text(size=24),
-        axis.text.x=element_text(size=18))+
-  theme(axis.text.y=element_text(hjust=0))+
-  ylab("")+
-  xlab("Mean depletion score\n(leading vs. lagging, 10kb)")
-wilcox.test(merge_scores_counts$score_avg)
-ggsave(scores.plot, file='../results/Figure-S4-6mer-palindromes-scores.pdf',
-       height=10, width=10)
-```
-
-### Figure 4
-
-Figure 4: Average depletion of within-range RM targets in the leading vs. lagging regions for conjugative PTUs. 
-```{r}
-
-results = NULL
-for (PTU in leading.region.PTUs){
-  for (k in c(5,6)){
-    scores_df = read.csv(paste0('../test_target_leading_lagging/', PTU, '_k', k, '_scores.csv'), header=T)
-    n_targets = nrow(scores_df)
-    scores_average <- scores_df %>%
-  rowwise() %>%
-  mutate(score_avg = mean(c_across(starts_with("score")))) %>%
-  ungroup() %>%
-  select(kmer, score_avg)
-    counts_df = read.csv(paste0('../test_target_leading_lagging/', PTU, '_k', k, '_counts.csv'), header=T)
-    counts_average <- counts_df %>%
-  rowwise() %>%
-  mutate(count_avg = mean(c_across(starts_with("count")))) %>%
-  ungroup() %>%
-  select(kmer, count_avg)
-    results = rbind(results, c(PTU, k, n_targets, median(scores_average$score_avg), median(counts_average$count_avg)))
-  }
-}
-
-results = data.frame(results)
-colnames(results) = c("PTU", "k", "n.targets", "median.score", "median.count")
-results$median.score= as.numeric(results$median.score)
-results$median.count = as.numeric(results$median.count)
-
-# Order by median score for k=6
-order.k.6.scores = results[which(results$k==6), "PTU"][order(results[which(results$k==6), "median.score"])]
-results$PTU = ordered(results$PTU,
-                      levels=rev(order.k.6.scores))
-# Add number of targets to each
-
-p.depletion.targets = ggplot(results, aes(median.score, as.factor(PTU)))+
-  geom_vline(xintercept = 0, size=1)+
-  geom_bar(stat="identity", position="dodge")+
-  facet_wrap(~k, scales="free_x")+
-  ylab("")+
-  xlab("Median depletion score of within-range RM targets\n(leading vs. lagging, 10kb)")+
-   theme_bw()+
-  theme(panel.grid = element_blank())+
-  theme(axis.text=element_text(colour="black", size=12),
-        axis.title.x=element_text(size=24),
-        axis.text.x=element_text(size=18))+
-  theme(axis.text.y=element_text(hjust=0))
-ggsave(p.depletion.targets, file='../results/Figure-4-figure-depletion-within-range-targets.pdf',
-       width=10, height=6)
-
-# Is there a correlation between k=5 and k=6 results?
-results.df = results %>% select(k, median.score, PTU) %>%
-  pivot_wider(
-    names_from = k,  # Use values of 'k' as new column names
-    values_from = median.score  # Use 'median.score' for the column values
-)
-```
 
 ### All motifs testing for over-representation
 
@@ -719,6 +694,4 @@ table(results.df.norm.average.top.depleted$palindrome)
 table(results.df.norm.average.top.depleted$target)
 chisq.test(matrix(c(7, 34, 865-7, 4096-865-34 ), nrow=2))
 chisq.test(matrix(c(4, 37, 60, 4055 ), nrow=2))
-
-
 ```
