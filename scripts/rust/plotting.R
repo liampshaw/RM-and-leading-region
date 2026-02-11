@@ -185,6 +185,7 @@ theoreticalDepletionPlot = function(filename, k, x.limit=c(0,50000)){ # filename
 }
 p.4 = theoreticalDepletionPlot("avg_4_step1000_window1000.tsv", 4)
 p.8 = theoreticalDepletionPlot("avg_8_step1000_window1000.tsv", 8)
+p.10 = theoreticalDepletionPlot("avg_10_step1000_window1000.tsv", 10)
 
 # Combine data
 gc_k8 = data.frame(gc=pos_avg_gc$mean_gc,
