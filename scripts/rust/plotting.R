@@ -161,10 +161,7 @@ theoreticalPalindromeExpectation = function(p, k){# p is GC content, k is k-mer 
 }
 gc_k6$theoretical_density =theoreticalPalindromeExpectation(gc_k6$gc, 6) 
 #plot(lm(mean_density ~ theoretical_density, data=gc_k6[which(gc_k6$position<50000),]))
-ggplot(gc_k6[which(gc_k6$position<50000),], aes(theoretical_density, mean_density, colour=position))+
-         geom_point()+
-         geom_path(aes(group=1))
-ggplot(gc_k6[which(gc_k6$position<50000),], aes(position, mean_density-theoretical_density))+
+ggplot(gc_k6[which(gc_k6$position<50000),], aes(position, (mean_density-theoretical_density)*1000))+
   geom_point()+
   geom_path(aes(group=1))
   
@@ -230,4 +227,17 @@ plotForPTU = function(data.table, my_ptu){
   return(ggplot(pos_avg_PTU, aes(position, mean_density, alpha=smoothed_N))+
     geom_line()+ggtitle(PTU))
 }
+
+
+# Add in defense systems stuff
+ds = read.csv('/Users/Liam/Dropbox/_Projects/2023-Trieste/2026-new-data/1751_defense_systems.tsv', 
+              header=T, sep='\t')
+ds$start = as.numeric(gsub("test_", "", ds$sys_beg))
+ds$end = as.numeric(gsub("test_", "", ds$sys_end))
+# Look at defense system location in terms of ORFs
+ggplot(ds, aes(start))+
+  geom_histogram()+
+  facet_wrap(~activity)
+# Plot this with GC for different PTUs...but would need actual locations in terms 
+# of basepairs rather than ORFs
 
