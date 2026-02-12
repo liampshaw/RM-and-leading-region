@@ -4,31 +4,49 @@
 
 #SBATCH --job-name=defensefinder
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=2
 #SBATCH --time=00:10:00 
 #SBATCH --mem=200M
 #SBATCH --account=panm038524
-#SBATCH --array=1-1751 # if running on n=1,751 plasmids in the original dataset
+#SBATCH --array=1-1751%50 # limit to 50 jobs simultaneously 
 
+set -euo pipefail
+# To reduce chance of launch failure 
+sleep $((RANDOM % 15))
+
+# Set thread values (unclear if it matters)
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export MKL_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export OPENBLAS_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
+# Get name of fasta file from samples.txt list 
 name=$(sed -n "${SLURM_ARRAY_TASK_ID}p" samples.txt)
 
 hostname
-. ~/initMamba.sh
-conda activate defensefinder-2.0.1
+# activate defensefinder (assumes we have already activated mamba with initMamba.sh on login node
+source activate defensefinder-2.0.1
 
-# Use /tmp on node to run job
+# Make temporary output folder
 OUT_TMP=/tmp/defense_finder_tmp_${SLURM_ARRAY_TASK_ID}
 OUT_FINAL=/user/home/xr24099/trieste/defense-finder-outputs
-# Copy input across
 mkdir -p $OUT_TMP
+# Check that file exists
+if [ -z "$name" ]; then
+    echo "No input file for array index ${SLURM_ARRAY_TASK_ID}"
+    exit 1
+fi
+
+if [ ! -f "$name" ]; then
+    echo "File $name does not exist"
+    exit 1
+fi
+# Then copy across if it does
 cp "$name" $OUT_TMP
+
+# Change to /tmp on node to run defense-finder
 cd $OUT_TMP
-# run defensefinder
-defense-finder run "$name" --workers ${SLURM_CPUS_PER_TASK} -o $OUT_TMP
-# Copy files back
-rsync -a --remove-source-files "${OUT_TMP}/" "${OUT_FINAL}/"
-rmdir "${OUT_TMP}"
+defense-finder run -a "$name" --workers ${SLURM_CPUS_PER_TASK} -o $OUT_TMP
+# Cp back tsv output
+cp ${OUT_TMP}/*.tsv "${OUT_FINAL}/"
+# Clean up
+rm -r "${OUT_TMP}"
