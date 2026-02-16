@@ -7,6 +7,7 @@ import pandas as pd
 from Bio import SeqIO
 from collections import Counter
 import sys
+import glob
 
 def codon_usage(seq):
     '''Codon usage for a given sequence.'''
@@ -26,7 +27,21 @@ def compute_cai(counts, weights):
 lucks_weights = pd.read_csv('/Users/Liam/Dropbox/_Projects/2023-Trieste/2026-new-data/lucks_ecoli_codon_weights.tsv', sep='\t', comment='#')
 weights_dict = dict(zip(lucks_weights["codon"], lucks_weights["w"])) 
 
-for record in SeqIO.parse(sys.argv[1], "fasta"):
-    usage = codon_usage(record.seq)
-    cai = compute_cai(usage, weights_dict)
-    print(record.id, cai)
+pattern = sys.argv[1]     
+output_file = sys.argv[2] 
+
+fasta_files = glob.glob(pattern)
+
+with open(output_file, "w") as out:
+    out.write("gene_id\tcai\n")
+    for fasta in fasta_files:
+        print(fasta)
+        for record in SeqIO.parse(fasta, "fasta"):
+            usage = codon_usage(record.seq)
+            cai = compute_cai(usage, weights_dict)
+            # include filename to avoid ID collisions
+            out.write(f"{fasta}|{record.id}\t{cai:.6f}\n")
+#for record in SeqIO.parse(sys.argv[1], "fasta"):
+#    usage = codon_usage(record.seq)
+#    cai = compute_cai(usage, weights_dict)
+#    print(record.id, cai)
