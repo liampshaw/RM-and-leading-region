@@ -25,11 +25,61 @@ cai.ptu = cai.ptu %>% left_join(cai.ptu.thresholds, by="PTU")
 
 pdf('~/Dropbox/_Projects/2023-Trieste/RM-and-leading-region/results/cai_results.pdf')
 ggplot(cai.ptu %>% filter(position <= percentile), aes(position, mean.cai))+
-  geom_point(size=0.5)+
-  facet_wrap(~PTU, scales="free_x")
+  geom_point(size=0.5, aes(colour=mean.cai))+
+  facet_wrap(~PTU, scales="free_x")+
+  scale_colour_continuous(low="white", high="red")+
+  xlab("ORF position")+
+  ylab("Mean CAI")+
+  theme_bw()
 dev.off()
 
+# Flip them as well
+cai.flipped <- cai %>%
+  group_by(plasmid) %>%
+  mutate(position = -(max(position) + 1 - position))%>% # 1 -> -N, N -> -1
+  ungroup()
+cai.both = rbind(cai, cai.flipped)
+cai.both.max.positions = cai.both %>%
+  group_by(PTU, plasmid) %>%
+  summarise(max=max(position)) %>%
+  group_by(PTU) %>%
+  summarise(percentile=quantile(max, 0.25)) # Choose a percentile threshold e.g. 0.2 means at this length 75% of plasmids in the PTU are at least this length
+cai.ptu.both = cai.both %>%
+  group_by(PTU, position) %>%
+  summarise(mean.cai=mean(cai)) 
+cai.ptu.both = cai.ptu.both %>%
+  left_join(cai.both.max.positions, by = "PTU")
+# Filter out 
+cai.ptu.both.filter = cai.ptu.ecoli.both %>%
+  filter(position <= percentile/2 & position >= -percentile/2)
+
+ggplot(cai.ptu.both.filter, aes(position, mean.cai))+
+  geom_point(size=0.5)+
+  facet_wrap(~PTU, scales="free_x",nrow=3)
+
+# Make plots for 
+MOBF.PLASMIDS = c("PTU-N1", "PTU-FE", "PTU-FS")
+MOBP.PLASMIDS = c("PTU-I1", "PTU-I2", "PTU-BOKZ", "PTU-LM", 
+                  "PTU-X1", "PTU-X3")
+MOBH.PLASMIDS = c("PTU-HI1A", "PTU-C")
+
+p.mobF = ggplot(cai.ptu.both.filter %>% filter(PTU %in% MOBF.PLASMIDS), aes(position, mean.cai))+
+  geom_point(size=0.5, aes(colour=mean.cai))+
+  facet_wrap(~PTU, scales="free_x", nrow=1)+
+  scale_colour_continuous(low="white", high="red")
+p.mobP = ggplot(cai.ptu.both.filter %>% filter(PTU %in% MOBP.PLASMIDS), aes(position, mean.cai))+
+  geom_point(size=0.5, aes(colour=mean.cai))+
+  facet_wrap(~PTU, nrow=1,scales="free_x")+
+  scale_colour_continuous(low="white", high="red")
+p.mobH = ggplot(cai.ptu.both.filter %>% filter(PTU %in% MOBH.PLASMIDS), aes(position, mean.cai))+
+  geom_point(size=0.5, aes(colour=mean.cai))+
+  facet_wrap(~PTU,nrow=1, scales="free_x")+
+  scale_colour_continuous(low="white", high="red")
+
+
+##############################
 # Just Escherichia coli plasmids
+##############################
 cai.ecoli = cai %>% filter(HostSpecies=="Escherichia coli")
 cai.ptu.ecoli = cai.ecoli %>%
   group_by(PTU, position) %>%
