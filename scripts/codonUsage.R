@@ -41,10 +41,17 @@ pca.df$antidefense = ifelse(rownames(pca.df) %in% antidefense_hits$sys_beg, "ant
 pca.df$defense = ifelse(rownames(pca.df) %in% defense_hits$sys_beg, "defense", "")
 pca.df$type = ifelse(pca.df$antidefense=="antidefense", "antidefense", ifelse(pca.df$defense=="defense", "defense", "other"))
 
-
+# Plot all genes and facet by type (whether known to be defense, antidefense, other)
+# We do see some indication of compositional differences
+# likely driven by GC content
 ggplot(pca.df, aes(PC1, PC2, colour=ds))+
   geom_point()+
   facet_wrap(~type)
+
+ggplot(pca.df, aes(PC1, PC2, colour=position>15))+
+  geom_point()+
+  facet_wrap(~position>15)
+
 
 ggplot(pca.df[which(pca.df$ds=="antidefense"),], aes(PC2, PC3, colour=ds))+
   geom_point()
@@ -61,7 +68,7 @@ ggplot(pca.df[which(pca.df$plasmid %in% head(unique(pca.df$plasmid) ) & pca.df$p
 # Or try umap?
 # Run umap - takes several minutes
 umap_res <- umap(
-  codon.mat,
+  codon.mat.scaled,
   n_components = 2,
   n_neighbors = 15,
   min_dist = 0.1,

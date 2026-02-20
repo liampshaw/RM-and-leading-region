@@ -94,6 +94,10 @@ cowplot::plot_grid(p.gc+ggtitle("GC content"),
                    nrow=5)
 dev.off()
 
+# Plot per-PTU
+
+
+
 gc_k4 = data.frame(gc=pos_avg_gc$mean_gc, 
                    mean_density=res_4$mean_density,
                    position=pos_avg_gc$position)
@@ -167,7 +171,7 @@ ggplot(gc_k6[which(gc_k6$position<50000),], aes(position, (mean_density-theoreti
   
 #
 # Read in data without smoothing
-theoreticalDepletionPlot = function(filename, k, x.limit=c(0,50000)){ # filename is results from rust script, k is palindrome length
+theoreticalDepletionPlot = function(filename, k, x.limit=50000){ # filename is results from rust script, k is palindrome length
   obs = average_density(filename)
   # Combine data
   gc_obs = data.frame(gc=pos_avg_gc$mean_gc,
@@ -175,14 +179,26 @@ theoreticalDepletionPlot = function(filename, k, x.limit=c(0,50000)){ # filename
                      position=pos_avg_gc$position,
                      N=pos_avg_gc$N)
   gc_obs$theoretical_density =theoreticalPalindromeExpectation(gc_obs$gc, k) 
-  return(ggplot(gc_obs, aes(position, (mean_density-theoretical_density) *1000))+
+  return(ggplot(gc_obs %>% filter(position<x.limit), aes(position, (mean_density-theoretical_density) *1000))+
+           geom_hline(yintercept = 0, linetype='dashed')+
     geom_point()+
-    geom_path(aes(group=1)))+
-    xlim(x.limit )
+    geom_path(aes(group=1))+
+      theme_bw())
 }
 p.4 = theoreticalDepletionPlot("avg_4_step1000_window1000.tsv", 4)
+p.6 = theoreticalDepletionPlot("avg_6_step1000_window1000.tsv", 6)
 p.8 = theoreticalDepletionPlot("avg_8_step1000_window1000.tsv", 8)
 p.10 = theoreticalDepletionPlot("avg_10_step1000_window1000.tsv", 10)
+
+# Plot for paper
+pdf('../../results/Figure-GC-with-pal-densities-expectation.pdf', width=3, height=7)
+cowplot::plot_grid(p.gc+xlim(c(0,50000))+
+                     theme_bw()+ylab("GC content")+xlab(""), 
+                   p.4+ylab("4-mers")+xlab(""), 
+                    p.6+ylim(c(-9, 3))+ylab("6-mers")+xlab(""), 
+                     p.8+ylab("8-mers")+xlab(""), 
+                   p.10+ylab("10-mers")+xlab("Position (bp)"), nrow=5)
+dev.off()
 
 # Combine data
 gc_k8 = data.frame(gc=pos_avg_gc$mean_gc,
@@ -227,17 +243,4 @@ plotForPTU = function(data.table, my_ptu){
   return(ggplot(pos_avg_PTU, aes(position, mean_density, alpha=smoothed_N))+
     geom_line()+ggtitle(PTU))
 }
-
-
-# Add in defense systems stuff
-ds = read.csv('/Users/Liam/Dropbox/_Projects/2023-Trieste/2026-new-data/1751_defense_systems.tsv', 
-              header=T, sep='\t')
-ds$start = as.numeric(gsub("test_", "", ds$sys_beg))
-ds$end = as.numeric(gsub("test_", "", ds$sys_end))
-# Look at defense system location in terms of ORFs
-ggplot(ds, aes(start))+
-  geom_histogram()+
-  facet_wrap(~activity)
-# Plot this with GC for different PTUs...but would need actual locations in terms 
-# of basepairs rather than ORFs
 
