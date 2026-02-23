@@ -138,17 +138,18 @@ def analyse_sequence_m2(seq, words, X):
 
 
 # ---------------- FASTA LEVEL ----------------
-def analyse_fasta_m2(fasta_path, motif, X=10000):
-    words = expand_motif(motif)
+def analyse_fasta_m2(fasta_path, motifs, X=10000):
     results = []
-
-    for header, seq in read_fasta(fasta_path):
-        if len(seq) < 3:
-            continue
-        alpha=0.5 # to transform for log
-        E_A, E_B, O_A, O_B, p, pval = analyse_sequence_m2(seq, words, X)
-        delta_L = math.log((O_A + alpha)/(E_A + alpha)) - math.log((O_B + alpha)/(E_B + alpha))
-        results.append({
+    for motif in motifs:
+        words = expand_motif(motif)
+    
+        for header, seq in read_fasta(fasta_path):
+            if len(seq) < 3:
+                continue
+            alpha=0.5 # to transform for log
+            E_A, E_B, O_A, O_B, p, pval = analyse_sequence_m2(seq, words, X)
+            delta_L = math.log((O_A + alpha)/(E_A + alpha)) - math.log((O_B + alpha)/(E_B + alpha))
+            results.append({
             "id": header,
             "length": len(seq),
             "E_A": E_A,
@@ -162,7 +163,7 @@ def analyse_fasta_m2(fasta_path, motif, X=10000):
 
     return results
 
-results = analyse_fasta_m2(sys.argv[1],"RCCGGY", X=15000)
+results = analyse_fasta_m2(sys.argv[1],["GTATCC"], X=15000)
 
 for r in results[:5]:
     print(r)

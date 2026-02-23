@@ -209,3 +209,29 @@ cai_antidefense = cai %>% filter(protein_type=="antidefense") %>%
   
 cai_all_antidefense = cai %>% filter(protein_type=="antidefense") %>%
   left_join(antidefense_by_protein, by="id")
+
+# Fit as model of position
+# Candidate breakpoints (avoid extremes)
+candidates <- seq(1,50,5)
+fit_model <- function(bp) {
+  df_tmp <- df %>%
+    mutate(step = ifelse(position > bp, 1, 0))
+  
+  model <- lmer(score ~ step + PTU + (1 | plasmid), data = df_tmp, REML = FALSE)
+  
+  return(list(
+    bp = bp,
+    model = model,
+    AIC = AIC(model)
+  ))
+}
+# Test possible breakpoints
+results <- lapply(candidates, fit_model)
+# Extract AICs
+aic_df <- data.frame(
+  bp = sapply(results, `[[`, "bp"),
+  AIC = sapply(results, `[[`, "AIC")
+)
+# Best breakpoint is...
+best_bp <- aic_df$bp[which.min(aic_df$AIC)]
+best_model <- results[[which.min(aic_df$AIC)]]$model
