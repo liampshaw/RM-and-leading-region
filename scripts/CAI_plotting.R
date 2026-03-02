@@ -1,6 +1,7 @@
 library(ggplot2)
 library(dplyr)
 library(tidyr)
+library(cowplot)
 
 # Read in CAI data
 cai = read.csv('~/Dropbox/_Projects/2023-Trieste/2026-new-data/cai_prodigal_meta.tsv',
@@ -31,6 +32,10 @@ cai.ptu.thresholds = cai %>%
   summarise(percentile=quantile(max, 0.25)) 
 cai.ptu = cai.ptu %>% left_join(cai.ptu.thresholds, by="PTU")
 
+cai.ptu = cai.ptu %>% left_join(mob.types, by="PTU")
+
+
+
 pdf('~/Dropbox/_Projects/2023-Trieste/RM-and-leading-region/results/cai_results.pdf')
 ggplot(cai.ptu %>% filter(position <= percentile), aes(position, mean.cai))+
   geom_point(size=0.5, aes(colour=mean.cai))+
@@ -38,18 +43,76 @@ ggplot(cai.ptu %>% filter(position <= percentile), aes(position, mean.cai))+
   scale_colour_continuous(low="white", high="red")+
   xlab("ORF position")+
   ylab("Mean CAI")+
-  theme_bw()
+  theme_bw()+
+  theme(panel.grid=element_blank())
 dev.off()
-# And average over all PTUs at each positino
-cai.ptu %>% group_by(position) %>%
+
+plotCAI = function(df){
+  return(ggplot(df, aes(position, mean.cai))+
+           geom_point(size=1, aes(colour=mean.cai))+
+           facet_wrap(~PTU, scales="free_x")+
+           scale_colour_continuous(low="white", high="red", limits=c(0.15, 0.425))+
+           xlab("ORF position")+
+           ylab("Mean CAI")+
+           theme_bw()+
+           theme(panel.grid=element_blank()))
+}
+
+empty_plot <- ggplot() +
+  geom_blank() +
+  theme_minimal()
+
+# Plot by MOB type
+cai.ptu.plot = cai.ptu[which(cai.ptu$position<100),]
+p.F.1 = plotCAI(cai.ptu.plot[which(cai.ptu.plot$PTU %in% c("PTU-E81", "PTU-E84", "PTU-FE")),]) +
+  theme(legend.position = "none")
+p.F.2 = plotCAI(cai.ptu.plot[which(cai.ptu.plot$PTU %in% c("PTU-FE", "PTU-N1")),]) +
+  theme(legend.position = "none")
+p.P.1 = plotCAI(cai.ptu.plot[which(cai.ptu.plot$PTU %in% c("PTU-BOKZ", "PTU-I1", "PTU-I2")),]) +
+  theme(legend.position = "none")+
+  ylab("")+
+  xlab("")
+p.P.2 = plotCAI(cai.ptu.plot[which(cai.ptu.plot$PTU %in% c("PTU-LM", "PTU-X1", "PTU-X3")),]) +
+  theme(legend.position = "none")+
+  ylab("")+
+  xlab("")
+p.H = plotCAI(cai.ptu.plot[which(cai.ptu.plot$PTU %in% c("PTU-C", "PTU-HI1A")),]) +
+  theme(legend.position = "none")
+
+p.F = plotCAI(cai.ptu.plot[which(cai.ptu.plot$Majority.MOB=="MOBF"),]) +
+  theme(legend.position = "none")+
+  ylim(c(0.15, 0.45))
+p.P = plotCAI(cai.ptu.plot[which(cai.ptu.plot$Majority.MOB=="MOBP"),]) +
+  theme(legend.position = "none")+
+  ylab("")+
+  ylim(c(0.15, 0.45))
+# Missing data for MOBH to preserve facet structure
+df.H <- cai.ptu.plot[cai.ptu.plot$PTU %in% c("PTU-C", "PTU-HI1A"), ]
+# Make sure the faceting variable includes a third level for the missing panel
+df.H$PTU <- factor(df.H$PTU, levels = c("PTU-C", "PTU-HI1A", "MISSING", "MISSING2", "MISSING3", "MISSING4"))
+
+p.H <- plotCAI(df.H) +
+  theme(legend.position = c(0.8, 0.2)) +
+  ylab("") +
+  ylim(c(0.15, 0.45)) +
+  facet_wrap(~PTU, drop = FALSE, scales="free_x")
+p.CAI.combined = plot_grid(p.F, p.P, p.H, axis='bt',align='h', nrow=1,
+          rel_widths = c(3,3.2,3.2))
+ggsave(file="../results/fig-CAI-combined.pdf", p.CAI.combined, width=12, height=4)
+
+# And average over all PTUs at each position
+p.average.over.all = cai.ptu %>% group_by(position) %>%
   summarise(mean.cai=mean(mean.cai)) %>%
   ggplot(aes(position, mean.cai))+
-  geom_point(size=0.5, aes(colour=mean.cai))+
-  scale_colour_continuous(low="white", high="red")+
+  geom_point(size=1, aes(colour=mean.cai))+
+  scale_colour_continuous(low="white", high="red", limits=c(0.15, 0.425))+
   xlab("ORF position")+
   ylab("Mean CAI")+
   theme_bw()+
-  xlim(c(0,100))
+  xlim(c(0,100))+
+  theme(panel.grid=element_blank())+
+  theme(legend.position = "none")
+ggsave(file="../results/fig-CAI-average-over-PTUs.pdf", width=3, height=1.8)
 
 # Flip them as well
 cai.flipped <- cai %>%
